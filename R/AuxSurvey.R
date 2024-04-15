@@ -1,12 +1,9 @@
 library(gtools)
-library(scales)
-library(coda)
 library(survey)
-library(pROC)
 library(tidyverse)
 library(mgcv)
 library(rstanarm)
-library(rlang)
+
 
 uwt <- function(svysmpl, svyVar, subset = NULL, invlvls, weights = NULL) {
   subset = c("T", subset)
