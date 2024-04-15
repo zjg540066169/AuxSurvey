@@ -251,23 +251,74 @@ svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NU
 
 
 
-auxsurvey <- function(formula, auxilary = NULL, samples, population = NULL, subset = NULL, family = gaussian(), method = c("sample_mean", "rake", "postStratify", "MRP", "GAMP", "linear"), weights = NULL, levels = c(0.95, 0.8, 0.5), stan_verbose = T, show_plot = T, nskip = 1000, npost = 1000, nchain = 4, HPD_interval = F, ...){
+#' Title
+#'@description Probability surveys often use auxiliary continuous data from administrative records, but the utility of this data is diminished when it is discretized for confidentiality.
+#'
+#'This function provides a user-friendly interface for different estimators with the discretized auxiliary variables.
+#'
+#'The estimators includes (weighted) sample mean, (weighted) raking, (weighted) post-stratification, and three Bayesian methods: MRP, GAMP(Generalized additive model of response propensity) and (weighted) linear regression. The three Bayesian models are based on \code{\link[rstan]} and \code{\link[rstanarm]}.
+#'
+#' @param formula A string or formula for the specified formula for the outcome model. For non-model based methods(sample mean, raking, post-stratification), just include the outcome variable, such as "~Y". For model based methods (MRP, GAMP, LR), additional predictors can be specified as fixed effects term, such as "Y~X1+X2 + I(X^2)". For GAMP, smooth functions can be specified, such as "Y~X1 + s(X2, 10) + s(X3, by = X1)". Categorical variables are coded as dummy variables in model based methods.
+#' @param auxiliary A string for the specified formula for the auxiliary variables. For sample mean, just leave it as NULL. For raking, post-stratification, MRP, use string for an additive model, such as "Z1 + Z2 + Z3". MRP specifies random effects for terms in this parameter, such as "Z1 + Z2 + Z3" or "Z1 + Z2:Z3".
+#' @param samples A dataframe or tibble contains all variables in 'formula' and 'auxiliary'. This dataframe is a subset of 'population'.
+#' @param population A dataframe or tibble contains all variables in 'formula' and 'auxiliary'.
+#' @param subset A character vector. Each element is a string representing a filtering condition to select subset of samples and population. Default is NULL. When this parameter is NULL, the analysis is only performed on the whole data. If subsets are specified, the estimates for the whole data will also be calculated.
+#' @param family The distribution family of outcome variable. Currently we only support \code{\link[stats]{gaussian}} and \code{\link[stats]{binomial}}.
+#' @param method A string specifying which model to use.
+#' @param weights A numeric vector of case weights. The length should be equal to the number of cases in 'samples'.
+#' @param levels A numeric vector of values in [0, 1]. Each specifies a confidence level of CI for estimators. If more than one values are specified, then multiple CIs are calculated.
+#' @param stan_verbose A logical scalar; if true, print all messages when running stan models. Default is false. This parameter only works for Bayesian models.
+#' @param show_plot A logical scalar; if true, show some diagnostic plots for stan models. Default is false. This parameter only works for Bayesian models.
+#' @param nskip A integer to specify the number of burn-in iterations of each chain in MCMC for stan models. Default is 1000. This parameter only works for Bayesian models.
+#' @param npost A integer to specify the number of posterior sampling iteration of each chain in MCMC for stan models. Default is 1000. This parameter only works for Bayesian models.
+#' @param nchain A integer to specify the number of MCMC chains for stan models. Default is 4. This parameter only works for Bayesian models.
+#' @param HPD_interval A logical scalar; if true, the calculated credible intervals for stan models are highest posterior density intervals. Otherwise the intervals are symmetric. Default is false. This parameter only works for Bayesian models.
+#' @param ...
+#'
+#' @return A list. Each element contains the estimate and CIs for a subset or the whole data analysis.
+#' @export
+#'
+#' @examples
+#' ## simulate data from the 'simulate' function, with nonlinear association setting 3. The continuous variable X is discretized into categorical variable auX_3 with 3 categories and auX_10 with 10 categories.
+#' data = simulate(N = 3000, discretize = c(3, 10), setting = 3, seed = 123)
+#'
+#' ## The dataset consists of a continuous outcome Y, 3 binary variables Z1, Z2, Z3. Discretized variables auX_3 and auX_10. Propensity scores true_pi and it log transformation logit_true_pi are calculated.
+#' population = data$population # get population, 3000 cases
+#' samples = data$samples # get samples, about 600 cases
+#' ipw = 1 / samples$true_pi # get the inverse probability weighting
+#'
+#' ## IPW sample mean, with analysis on subset Z1 == 1 & Z2 == 1.
+#' IPW_sample_mean = auxsurvey("~Y1",  auxilary = NULL, weights = ipw, samples = samples, population = population, subset = c("Z1 == 1 & Z2 == 1"), method = "sample_mean", levels = 0.95)
+#'
+#' ## rake, with analysis on subsets Z1 == 1 and Z1 == 1 & Z2 == 1.
+#' rake = auxsurvey("~Y1",  auxilary = "Z1 + Z2 + Z3 + auX_10", samples = samples, population = population, subset = c("Z1 == 1", "Z1 == 1 & Z2 == 1"), method = "rake", levels = 0.95)
+#'
+#' ## IPW post-stratification, no subset analysis.
+#' IPW_postStratify3 = auxsurvey("~Y1",  auxilary = "Z1 + Z2 + Z3 + auX_3", weights = ipw, samples = samples, population = population, method = "postStratify", levels = 0.95)
+#'
+#' ## MRP, with analysis on subsets Z1 == 1, Z1 == 1 & Z2 == 1, Z1 == 1 & Z2 == 1 & Z3 == 1.
+#' MRP = auxsurvey("Y1~1 + Z1",  auxilary = "Z2 + Z3:auX_10", samples = samples, population = population, subset = c("Z1 == 1", "Z1 == 1 & Z2 == 1", "Z1 == 1 & Z2 == 1 & Z3 == 1"), method = "MRP", levels = 0.95, nskip = 4000, npost = 4000, nchain = 1, stan_verbose = F, HPD_interval = T)
+#'
+#' ## GAMP, no subset analysis.
+#' GAMP = auxsurvey("Y1~1 + Z1 + Z2 + Z3",  auxilary = "s(auX_10) + s(logit_true_pi, by = Z1)", samples = samples, population = population, subset = NULL, method = "GAMP", levels = 0.95, nskip = 4000, npost = 4000, nchain = 1, stan_verbose = F, HPD_interval = T)
+#'
+auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, subset = NULL, family = gaussian(), method = c("sample_mean", "rake", "postStratify", "MRP", "GAMP", "linear"), weights = NULL, levels = c(0.95, 0.8, 0.5), stan_verbose = T, show_plot = T, nskip = 1000, npost = 1000, nchain = 4, HPD_interval = F, ...){
   svyVar = str_trim(str_split_1(as.character(formula), "~"))
   svyVar = svyVar[svyVar != ""][1]
-  if(!is.null(auxilary)){
-    auxilary = as.character(auxilary)
-    auxilary = str_remove_all(auxilary, " ")
-    auxilary = paste0(auxilary, collapse = "+")
-    if(!str_detect(auxilary, "^~")){
-      auxilary = paste0("~",auxilary)
+  if(!is.null(auxiliary)){
+    auxiliary = as.character(auxiliary)
+    auxiliary = str_remove_all(auxiliary, " ")
+    auxiliary = paste0(auxiliary, collapse = "+")
+    if(!str_detect(auxiliary, "^~")){
+      auxiliary = paste0("~",auxiliary)
     }
   }
-  if(length(setdiff(union(all.vars(as.formula(auxilary)), all.vars(as.formula(formula))), colnames(population))) > 0){
-    stop(paste0("unidentified variables: ", paste0(setdiff(union(all.vars(as.formula(auxilary)), all.vars(as.formula(formula))), colnames(population)), collapse = ", "), collapse = ", "))
+  if(length(setdiff(union(all.vars(as.formula(auxiliary)), all.vars(as.formula(formula))), colnames(population))) > 0){
+    stop(paste0("unidentified variables: ", paste0(setdiff(union(all.vars(as.formula(auxiliary)), all.vars(as.formula(formula))), colnames(population)), collapse = ", "), collapse = ", "))
   }
 
-  #auxilary = str_trim(str_split(auxilary, "\\+", simplify = T))
-  #auxilary = str_remove_all()
+  #auxiliary = str_trim(str_split(auxiliary, "\\+", simplify = T))
+  #auxiliary = str_remove_all()
   method = match.arg(method)
   # if(is.null(propensity_score))
   #   weights = NULL
@@ -283,9 +334,9 @@ auxsurvey <- function(formula, auxilary = NULL, samples, population = NULL, subs
     if("." %in% covariates){
       covariates = setdiff(names(samples), svyVar)
     }
-    auxilary = str_trim(str_split(str_split_i(as.character(auxilary), "~", 2), "\\+", simplify = T))
-    auxilary = auxilary[!is.na(auxilary) & auxilary != ""]
-    return(rake_wt(samples, population, auxilary, svyVar, subset, family = family, levels, weights, maxiter = 50))
+    auxiliary = str_trim(str_split(str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T))
+    auxiliary = auxiliary[!is.na(auxiliary) & auxiliary != ""]
+    return(rake_wt(samples, population, auxiliary, svyVar, subset, family = family, levels, weights, maxiter = 50))
   }
   if(method == "postStratify"){
     covariates = str_trim(str_split(str_split_i(as.character(formula), "~", 2), "\\+", simplify = T))
@@ -293,9 +344,9 @@ auxsurvey <- function(formula, auxilary = NULL, samples, population = NULL, subs
     if("." %in% covariates){
       covariates = setdiff(names(samples), svyVar)
     }
-    auxilary = unique(c(all.vars(as.formula(auxilary)), covariates))
-    auxilary = auxilary[!is.na(auxilary) & auxilary != ""]
-    return(postStr_wt(samples, population, auxilary, svyVar, subset, family = family, levels, weights))
+    auxiliary = unique(c(all.vars(as.formula(auxiliary)), covariates))
+    auxiliary = auxiliary[!is.na(auxiliary) & auxiliary != ""]
+    return(postStr_wt(samples, population, auxiliary, svyVar, subset, family = family, levels, weights))
   }
   if(method == "MRP"){
     if(is.null(nskip)) nskip = 1000
@@ -306,16 +357,16 @@ auxsurvey <- function(formula, auxilary = NULL, samples, population = NULL, subs
     if("." %in% covariates){
      covariates = setdiff(names(samples), svyVar)
     }
-    samples = mutate_at(samples, all.vars(as.formula(auxilary)), as.factor)
-    population = mutate_at(population, all.vars(as.formula(auxilary)), as.factor)
-    auxilary = str_replace_all(auxilary, "\\*", ":")
-    auxilary = str_split_i(as.character(auxilary), "~", 2)
-    auxilary = str_split(auxilary, "\\+", simplify = T)
+    samples = mutate_at(samples, all.vars(as.formula(auxiliary)), as.factor)
+    population = mutate_at(population, all.vars(as.formula(auxiliary)), as.factor)
+    auxiliary = str_replace_all(auxiliary, "\\*", ":")
+    auxiliary = str_split_i(as.character(auxiliary), "~", 2)
+    auxiliary = str_split(auxiliary, "\\+", simplify = T)
 
     if(length(covariates) == 0){
-      outcome_formula = paste0(paste0(svyVar, "~"), paste0("(1|", auxilary, ")", collapse = "+"))
+      outcome_formula = paste0(paste0(svyVar, "~"), paste0("(1|", auxiliary, ")", collapse = "+"))
     }else{
-      outcome_formula = paste(paste0(svyVar, "~", paste0(covariates, collapse = "+")), paste0("(1|", auxilary, ")", collapse = "+"), sep= "+")
+      outcome_formula = paste(paste0(svyVar, "~", paste0(covariates, collapse = "+")), paste0("(1|", auxiliary, ")", collapse = "+"), sep= "+")
     }
     cat("The formula for the MRP model is ", outcome_formula, "\n")
     MRP_est = svyBayesmod(samples, population, outcome_formula, "stan_glmer", subset, family, levels, weights, nskip, npost, nchain, printmod = TRUE, doFigure = show_plot, useTrueSample = F, stan_verbose = stan_verbose, shortest_CI = HPD_interval)
@@ -341,27 +392,27 @@ auxsurvey <- function(formula, auxilary = NULL, samples, population = NULL, subs
     #  covariates = setdiff(names(samples), svyVar)
     #}
 
-    #samples_matrix = model.matrix(as.formula(paste(paste0("~", str_split_i(formula, "~", 2)), paste0(auxilary, collapse = "+"), sep = "+")), data = samples)
-    samples = mutate_at(samples, all.vars(as.formula(auxilary)), as.numeric)
-    population = mutate_at(population, intersect(all.vars(as.formula(auxilary)), colnames(population)), as.numeric)
+    #samples_matrix = model.matrix(as.formula(paste(paste0("~", str_split_i(formula, "~", 2)), paste0(auxiliary, collapse = "+"), sep = "+")), data = samples)
+    samples = mutate_at(samples, all.vars(as.formula(auxiliary)), as.numeric)
+    population = mutate_at(population, intersect(all.vars(as.formula(auxiliary)), colnames(population)), as.numeric)
 
 
-    auxilary_fixed = setdiff(str_split(str_split_i(as.character(auxilary), "~", 2), "\\+", simplify = T), all.vars(as.formula(auxilary)))
+    auxiliary_fixed = setdiff(str_split(str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T), all.vars(as.formula(auxiliary)))
 
 
-    outcome_formula = paste(formula, paste(auxilary_fixed, collapse = "+"), sep = "+")
-    auxilary_random = intersect(str_split(str_split_i(as.character(auxilary), "~", 2), "\\+", simplify = T), all.vars(as.formula(auxilary)))
-    samples = mutate_at(samples, auxilary_random, as.factor)
-    population = mutate_at(population, auxilary_random, as.factor)
-    if(length(auxilary_random) != 0){
-      outcome_formula = c(outcome_formula, paste0("~", paste0("(1|", auxilary_random, ")", collapse = "+")))
+    outcome_formula = paste(formula, paste(auxiliary_fixed, collapse = "+"), sep = "+")
+    auxiliary_random = intersect(str_split(str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T), all.vars(as.formula(auxiliary)))
+    samples = mutate_at(samples, auxiliary_random, as.factor)
+    population = mutate_at(population, auxiliary_random, as.factor)
+    if(length(auxiliary_random) != 0){
+      outcome_formula = c(outcome_formula, paste0("~", paste0("(1|", auxiliary_random, ")", collapse = "+")))
       cat("The formula for the GAMP model is ", paste0(outcome_formula[1], str_replace(outcome_formula[2], "~", "+"), collapse = ""), "\n")
     }else{
       outcome_formula = c(outcome_formula, NULL)
       cat("The formula for the GAMP model is ", outcome_formula[1], "\n")
     }
 
-    #outcome_formula = paste(formula, paste0(str_remove_all(auxilary, "~"), collapse = "+"), paste0("(1|", auxilary_random, ")", collapse = "+"),  sep = "+")
+    #outcome_formula = paste(formula, paste0(str_remove_all(auxiliary, "~"), collapse = "+"), paste0("(1|", auxiliary_random, ")", collapse = "+"),  sep = "+")
 
     GAMP_est = svyBayesmod(samples, population, outcome_formula, "stan_gamm4", subset, family, levels, weights, nskip, npost, nchain, printmod = T, doFigure = F, useTrueSample = T, stan_verbose = stan_verbose, shortest_CI = HPD_interval)
 
@@ -382,19 +433,19 @@ auxsurvey <- function(formula, auxilary = NULL, samples, population = NULL, subs
     if(is.null(nskip)) nskip = 1000
     if(is.null(npost)) npost = 1000
     if(is.null(nchain)) nchain = 4
-    samples = mutate_at(samples, all.vars(as.formula(auxilary)), as.numeric)
-    population = mutate_at(population, intersect(all.vars(as.formula(auxilary)), colnames(population)), as.numeric)
+    samples = mutate_at(samples, all.vars(as.formula(auxiliary)), as.numeric)
+    population = mutate_at(population, intersect(all.vars(as.formula(auxiliary)), colnames(population)), as.numeric)
 
 
-    auxilary_fixed = setdiff(str_split(str_split_i(as.character(auxilary), "~", 2), "\\+", simplify = T), all.vars(as.formula(auxilary)))
+    auxiliary_fixed = setdiff(str_split(str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T), all.vars(as.formula(auxiliary)))
 
 
-    outcome_formula = paste(formula, paste(auxilary_fixed, collapse = "+"), collapse = "+")
-    auxilary_random = intersect(str_split(str_split_i(as.character(auxilary), "~", 2), "\\+", simplify = T), all.vars(as.formula(auxilary)))
-    samples = mutate_at(samples, auxilary_random, as.factor)
-    population = mutate_at(population, auxilary_random, as.factor)
-    if(length(auxilary_random) != 0){
-      outcome_formula = c(outcome_formula, paste0("~", paste0("(1|", auxilary_random, ")", collapse = "+")))
+    outcome_formula = paste(formula, paste(auxiliary_fixed, collapse = "+"), collapse = "+")
+    auxiliary_random = intersect(str_split(str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T), all.vars(as.formula(auxiliary)))
+    samples = mutate_at(samples, auxiliary_random, as.factor)
+    population = mutate_at(population, auxiliary_random, as.factor)
+    if(length(auxiliary_random) != 0){
+      outcome_formula = c(outcome_formula, paste0("~", paste0("(1|", auxiliary_random, ")", collapse = "+")))
       cat("The formula for the linear model is ", paste0(outcome_formula[1], str_replace(outcome_formula[2], "~", "+"), collapse = ""), "\n")
       Linear_est = svyBayesmod(samples, population, outcome_formula, "stan_glmer", family, levels, weights, nskip, npost, nchain, printmod = T, doFigure = F, useTrueSample = T, stan_verbose = stan_verbose, shortest_CI = HPD_interval)
     }else{
@@ -415,7 +466,7 @@ auxsurvey <- function(formula, auxilary = NULL, samples, population = NULL, subs
     if(length(Linear_est) == 1)
       return(Linear_est[[1]])
 
-    #outcome_formula = paste(formula, paste0(str_remove_all(auxilary, "~"), collapse = "+"), paste0("(1|", auxilary_random, ")", collapse = "+"),  sep = "+")
+    #outcome_formula = paste(formula, paste0(str_remove_all(auxiliary, "~"), collapse = "+"), paste0("(1|", auxiliary_random, ")", collapse = "+"),  sep = "+")
     return(Linear_est)
   }
 }

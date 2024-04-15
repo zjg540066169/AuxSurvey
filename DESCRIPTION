@@ -1,12 +1,38 @@
 Package: AuxSurvey
-Title: What the Package Does (One Line, Title Case)
+Title: Survey Analysis with Auxiliary Discretized Variables
 Version: 0.0.0.9000
 Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"),
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+    c(person(given = "Jungang",
+             family = "Zou",
+             role = c("aut", "cre"),
+             email = "jz3183@cumc.columbia.edu"),
+      person(given = "Yutao",
+             family = "Liu",
+             role = c("aut")),
+      person(given = "Sharifa",
+             family = "Williams",
+             role = c("aut"),
+             email = "sharifa.williams@rutgers.edu")
+             ),  
+      person(given = "Qixuan",
+             family = "Chen",
+             role = c("aut"),
+             email = "qc2138@cumc.columbia.edu")
+             )
+    )
+Description: Probability surveys often use auxiliary continuous data from administrative records, but the utility of this data is diminished when it is discretized for confidentiality. We provide a set of survey estimators to make full use of information from the discretized variables.
+License: use_mit_license()
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
+Depends: 
+    mgcv,
+    rstanarm,
+    stats,
+    survey,
+    tidyverse
+Imports: 
+    gtools,
+    coda,
+    scales,
+    BART3
