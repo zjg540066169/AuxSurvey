@@ -12,13 +12,11 @@ Authors@R:
       person(given = "Sharifa",
              family = "Williams",
              role = c("aut"),
-             email = "sharifa.williams@rutgers.edu")
-             ),  
+             email = "sharifa.williams@rutgers.edu"),  
       person(given = "Qixuan",
              family = "Chen",
              role = c("aut"),
              email = "qc2138@cumc.columbia.edu")
-             )
     )
 Description: Probability surveys often use auxiliary continuous data from administrative records, but the utility of this data is diminished when it is discretized for confidentiality. We provide a set of survey estimators to make full use of information from the discretized variables.
 License: use_apache_license()
