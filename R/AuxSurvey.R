@@ -4,23 +4,127 @@ library(tidyverse)
 library(mgcv)
 library(rstanarm)
 
+library(tidyverse)
+library(mgcv)
+library(rstanarm)
 
+#' Simulate
+#'
+#' @param N Number of population size
+#' @param discretize Number of discretized categories
+#' @param setting Simulation setting
+#' @param seed Random seed
+#'
+#' @return simulated dataset
+#' @export
+#'
+#' @import stats
+#' @import gtools
+#' @import rstanarm
+#' @import survey
+#' @import tidyverse
+#' @import mgcv
+#' @import dplyr
+#' @import stringr
+#'
+simulate = function(N = 3000, discretize =c(3, 5, 10), setting = c(1,2,3), seed = NULL){
+  if(!is.null(seed))
+    set.seed(seed)
+  Z = sapply(c(0.7, 0.5, 0.4), function(p){
+    return(rbinom(N, 1, p))
+  })
+  X = rnorm(N)
+  W = rnorm(N)
+  auX = sapply(discretize, function(q) gtools::quantcut(X, q = q, labels = FALSE))
+  colnames(auX) = paste0("auX_", discretize)
+  auW = sapply(discretize, function(q) gtools::quantcut(W, q = q, labels = FALSE))
+  colnames(auW) = paste0("auW_", discretize)
+
+  if(setting == 1){
+    pi = rstanarm::invlogit(- 1.25 - Z[,1] + 1.25*Z[,2] - 0.75*Z[,3] + 0.75*X - 0.10*X^2)
+    Y1 = rnorm(N, 15 + 2.5*Z[,1] - Z[,2] + Z[,3] - 2*X + 3.75*X^2, 3)
+    Y2 = rbinom(N, 1, rstanarm::invlogit(-2.5 + 0.75*Z[,1] - 2.5*Z[,2] + 1.5*Z[,3] - 0.25*X + 1.5*X^2))
+  }
+  if(setting == 2){
+    pi = rstanarm::invlogit(- 1.25 - Z[,1] + 1.25*Z[,2] - 0.75*Z[,3] + 0.75*W - 0.10*W^2)
+    Y1 = rnorm(N, 15 + 2.5*Z[,1] - Z[,2] + Z[,3] - 2*X + 3.75*X^2, 3)
+    Y2 = rbinom(N, 1, rstanarm::invlogit(-2.5 + 0.75*Z[,1] - 2.5*Z[,2] + 1.5*Z[,3] - 0.25*X + 1.5*X^2))
+  }
+  if(setting == 3){
+    pi = rstanarm::invlogit(-0.9 - 0.5 * Z[,1] + 0.75 * Z[,2] - Z[,3] + 0.5 * X - 0.05 * X^2 + 0.5 * Z[,1] * X - 0.75 * Z[,1] * X^2)
+    Y1 = rnorm(N, 15 + 2.5 * Z[,1] - Z[,2] + Z[,3] - 2 * X + X^2 + Z[,1] * X - 2.5 * Z[,1] * X^2, 2)
+    Y2 = rbinom(N, 1, rstanarm::invlogit(-1.75 + 0.75 * Z[,1] - 1.5 * Z[,2] + 1.5 * Z[,3] - 1.5 * X + X^2 + Z[,1] * X - 2.5 * Z[,1] * X^2))
+  }
+  population = data.frame(
+    id = seq(1, N),
+    Z = Z,
+    X = X,
+    W = W,
+    auX = auX,
+    auW = auW,
+    Y1 = Y1,
+    Y2 = Y2,
+    true_pi = pi,
+    logit_true_pi = gtools::logit(pi)
+  )
+
+  U = runif(N)
+  population$inclusion = ifelse(pi > U, T, F)
+  samples = population[population$inclusion == T,]
+  colnames(population) = c("id", "Z1", "Z2", "Z3", "X", "W", colnames(auX), colnames(auW), "Y1", "Y2", "true_pi", "logit_true_pi", "inclusion")
+  colnames(samples) = c("id", "Z1", "Z2", "Z3", "X", "W", colnames(auX), colnames(auW), "Y1", "Y2", "true_pi", "logit_true_pi", "inclusion")
+
+  ps_model = BART3::gbart(as.matrix(population[, c("Z1", "Z2", "Z3", "X")]), population$inclusion, type = "pbart", ntree=50, keepevery= 1, ndpost = 100)
+  population$estimated_pi = predict(ps_model, as.matrix(population[, c("Z1", "Z2", "Z3", "X")]))$prob.test.mean
+  samples$estimated_pi = predict(ps_model, as.matrix(samples[, c("Z1", "Z2", "Z3", "X")]))$prob.test.mean
+  population$logit_estimated_pi = logit(population$estimated_pi)
+  samples$logit_estimated_pi = logit(samples$estimated_pi)
+
+  ps_model_with_W <- BART3::gbart(as.matrix(population[, c("Z1", "Z2", "Z3", "X", "W")]), population$inclusion, type = "pbart", ntree=50, keepevery= 1, ndpost = 100)
+  population$estimated_pi_with_W = predict(ps_model_with_W, as.matrix(population[, c("Z1", "Z2", "Z3", "X", "W")]))$prob.test.mean
+  samples$estimated_pi_with_W = predict(ps_model_with_W, as.matrix(samples[, c("Z1", "Z2", "Z3", "X", "W")]))$prob.test.mean
+  population$logit_estimated_pi_with_W = logit(population$estimated_pi_with_W)
+  samples$logit_estimated_pi_with_W = logit(samples$estimated_pi_with_W)
+
+  samples$inclusion = NULL
+  population$inclusion = NULL
+  return(list(population = as_tibble(population), samples = as_tibble(samples)))
+}
+
+
+
+#' Weighted or Unweighted Sample Mean
+#'
+#' @param svysmpl A dataframe or tibble to represent 'samples'.
+#' @param svyVar Outcome variable.
+#' @param subset A character vector. Each element is a string representing a filtering condition to select subset of samples and population. Default is NULL. When this parameter is NULL, the analysis is only performed on the whole data. If subsets are specified, the estimates for the whole data will also be calculated.
+#' @param invlvls A numeric vector of values. Each specifies a confidence level of CI for estimators. If more than one values are specified, then multiple CIs are calculated.
+#' @param weights A numeric vector of case weights. The length should be equal to the number of cases in 'samples'.
+#'
+#' @return A list. Each element contains the sample mean estimate and CIs for a subset or the whole data analysis.
+#'
+#' @import stats
+#' @import gtools
+#' @import rstanarm
+#' @import survey
+#' @import tidyverse
+#' @import mgcv
+#' @import dplyr
+#'
 uwt <- function(svysmpl, svyVar, subset = NULL, invlvls, weights = NULL) {
   subset = c("T", subset)
   infr = sapply(subset, function(s){
-
-
     index <- eval(rlang::parse_expr(s), envir = svysmpl)
     a = svysmpl[index, ]
     weights1 = weights[index]
-    obj <- paste(svyVar, 1, sep = '~') %>% as.formula(.) %>%
-      lm(., data = a, weights = weights1)
+    obj <- paste(svyVar, 1, sep = '~') %>% as.formula() %>%
+      lm(data = a, weights = weights1)
     invls <- sapply(invlvls, function(lvl){
       inv <- confint(object = obj, level = lvl);
       rownames(inv) <- lvl;
       return(inv)
     }, simplify = F)
-    invls <- invls %>% do.call('cbind', .)
+    invls <- do.call('cbind', invls)
     infr <- cbind(est = obj$coefficients, se = sqrt(diag(vcov(obj))), invls, sample_size = length(obj$fitted.values))
     if(is.null(weights))
       rownames(infr) = "sample_mean"
@@ -35,45 +139,70 @@ uwt <- function(svysmpl, svyVar, subset = NULL, invlvls, weights = NULL) {
   return(infr)
 }
 
+#' Weighted or Unweighted Raking
+#'
+#' @param svysmpl A dataframe or tibble to represent 'samples'.
+#' @param svypopu A dataframe or tibble to represent 'population'.
+#' @param auxVars A character vector contains the names of auxiliary variables for raking.
+#' @param svyVar Outcome variable.
+#' @param subset A character vector. Each element is a string representing a filtering condition to select subset of samples and population. Default is NULL. When this parameter is NULL, the analysis is only performed on the whole data. If subsets are specified, the estimates for the whole data will also be calculated.
+#' @param family The distribution family of outcome variable. Currently we only support \code{\link[stats]{gaussian}} and \code{\link[stats]{binomial}}.
+#' @param invlvls A numeric vector of values. Each specifies a confidence level of CI for estimators. If more than one values are specified, then multiple CIs are calculated.
+#' @param weights A numeric vector of case weights. The length should be equal to the number of cases in 'samples'.
+#' @param maxiter A integer to specify maximum iteration of raking.
+#'
+#' @return A list. Each element contains the raking estimate and CIs for a subset or the whole data analysis.
+#'
+#' @import stats
+#' @import gtools
+#' @import rstanarm
+#' @import survey
+#' @import tidyverse
+#' @import mgcv
+#' @import dplyr
+#' @import stringr
+#'
 rake_wt <- function(svysmpl, svypopu, auxVars, svyVar, subset = NULL, family = gaussian(), invlvls, weights = NULL, maxiter = 50) {
   subset = c("T", subset)
   svysmpl$fpc <- nrow(svypopu)
   if(is.null(weights))
-    des <- svydesign(id = ~1, weights = ~1, data = svysmpl, fpc = ~fpc)
+    des <- svydesign(ids = ~1, weights = ~1, data = svysmpl, fpc = ~fpc)
   else{
-    des <- svydesign(id = ~1, weights = ~weights, data = svysmpl, fpc = ~fpc)
+    des <- svydesign(ids = ~1, weights = ~weights, data = svysmpl, fpc = ~fpc)
   }
   popu_tab <- lapply(auxVars, function (Var) {
     Var = paste(all.vars(as.formula(paste0("~", Var))), collapse = "+")
-    fmla <- paste('~', Var, sep = ' ') %>% as.formula(.)
+    fmla <- paste('~', Var, sep = ' ') %>% as.formula()
     tab <- xtabs(fmla, svypopu)
     return(tab)
   } )
   fmla_list <- lapply(auxVars, function (Var) {
     Var = paste(all.vars(as.formula(paste0("~", Var))), collapse = "+")
-    paste('~', Var, sep = ' ') %>% as.formula(.) %>% return(.)
+    paste('~', Var, sep = ' ') %>% as.formula() %>% return()
   } )
   rakingobj <- rake(des, fmla_list, popu_tab,
                     control = list(maxit = maxiter, epsilon = 1, verbose = FALSE) )
   infr = sapply(subset, function(s){
     rakingobj = subset(rakingobj, eval(parse(text = s)))
     if(family$family == "binomial"){
-      suppressWarnings(rakest <- sapply(invlvls, function(lv) paste0('~', svyVar) %>% as.formula(.) %>%
-        svyciprop(., rakingobj, method = "logit", level = lv), simplify = F))
+      suppressWarnings(rakest <- sapply(invlvls, function(lv) paste0('~', svyVar) %>% as.formula() %>%
+        svyciprop(rakingobj, method = "logit", level = lv), simplify = F))
       tCI <- lapply(rakest, function(i){
         ci = confint(i, df = degf(rakingobj), parm = svyVar)
-        colnames(ci) = str_replace(colnames(ci), "%", " %")
+        colnames(ci) = stringr::str_replace(colnames(ci), "%", " %")
         ci
-      })%>% do.call("cbind", .)
+      })
+      tCI = do.call("cbind", tCI)
       rakest = rakest[[1]]
     }
     if(family$family == "gaussian"){
-      rakest <- paste0('~', svyVar) %>% as.formula(.) %>%
-        svymean(., rakingobj)
+      rakest <- paste0('~', svyVar) %>% as.formula() %>%
+        svymean(rakingobj)
       tCI <- sapply(invlvls, confint, object = rakest, df = degf(rakingobj),
-                    parm = svyVar, simplify = F) %>% do.call("cbind", .)
+                    parm = svyVar, simplify = F)
+      tCI = do.call("cbind", tCI)
     }
-    infr <- cbind(est = rakest[svyVar], se = sqrt(diag(vcov(rakest))), tCI, sample_size = degf(rakingobj) + 1, population_size = nrow(filter(svypopu, eval(parse(text = s)))))
+    infr <- cbind(est = rakest[svyVar], se = sqrt(diag(vcov(rakest))), tCI, sample_size = degf(rakingobj) + 1, population_size = nrow(dplyr::filter(svypopu, eval(parse(text = s)))))
     if(is.null(weights))
       rownames(infr) = "rake"
     else{
@@ -87,24 +216,42 @@ rake_wt <- function(svysmpl, svypopu, auxVars, svyVar, subset = NULL, family = g
   return(infr)
 }
 
+#' Weighted or Unweighted Post-Stratification
+#'
+#' @param svysmpl A dataframe or tibble to represent 'samples'.
+#' @param svypopu A dataframe or tibble to represent 'population'.
+#' @param auxVars A character vector contains the names of auxiliary variables for Post-Stratification.
+#' @param svyVar Outcome variable.
+#' @param subset A character vector. Each element is a string representing a filtering condition to select subset of samples and population. Default is NULL. When this parameter is NULL, the analysis is only performed on the whole data. If subsets are specified, the estimates for the whole data will also be calculated.
+#' @param family The distribution family of outcome variable. Currently we only support \code{\link[stats]{gaussian}} and \code{\link[stats]{binomial}}.
+#' @param invlvls A numeric vector of values. Each specifies a confidence level of CI for estimators. If more than one values are specified, then multiple CIs are calculated.
+#' @param weights A numeric vector of case weights. The length should be equal to the number of cases in 'samples'.
+#'
+#' @return A list. Each element contains the Post-Stratification estimate and CIs for a subset or the whole data analysis.
+#'
+#' @import stats
+#' @import gtools
+#' @import rstanarm
+#' @import survey
+#' @import tidyverse
+#' @import mgcv
+#' @import dplyr
+#' @import stringr
+#'
 postStr_wt <- function(svysmpl, svypopu, auxVars, svyVar, subset = NULL, family = gaussian(), invlvls, weights = NULL) {
-# svysmpl is sample
-# svypopu is population
-# auxVar is a vector of covariates names for post-stratification
-# svyVar is the outcome variables
-# invlvls is a vector of confidence levels
   subset = c("T", subset)
   svysmpl$fpc <- nrow(svypopu) # get population sample size
 
   # specify svydesign
   if(is.null(weights))
-    des <- svydesign(id = ~1, weights = ~1, data = svysmpl, fpc = ~fpc)
+    des <- svydesign(ids = ~1, weights = ~1, data = svysmpl, fpc = ~fpc)
   else{
-    des <- svydesign(id = ~1, weights = ~weights, data = svysmpl, fpc = ~fpc)
+    des <- svydesign(ids = ~1, weights = ~weights, data = svysmpl, fpc = ~fpc)
   }
 
 
-  fmla <- paste(auxVars, collapse = "+") %>% paste('~', ., sep = ' ') %>% as.formula(.)
+  fmla <- paste(auxVars, collapse = "+")
+  fmla = paste('~', fmla, sep = ' ') %>% as.formula()
 
   # set for post-stratification
   tab <- xtabs(fmla, svypopu)
@@ -121,23 +268,25 @@ postStr_wt <- function(svysmpl, svypopu, auxVars, svyVar, subset = NULL, family 
     # this function allows users specify multiple confidence levels, such as invlvls = c(0.95, 0.8)
     # so sapply function will calculate every confidence intervals separately
     if(family$family == "binomial"){
-      suppressWarnings(PSest <- sapply(invlvls, function(lv) paste0('~', svyVar) %>% as.formula(.) %>%
-                         svyciprop(., PSobj, method = "logit", level = lv), simplify = F))
+      suppressWarnings(PSest <- sapply(invlvls, function(lv) paste0('~', svyVar) %>% as.formula() %>%
+                         svyciprop(PSobj, method = "logit", level = lv), simplify = F))
       tCI <- lapply(PSest, function(i){
         ci = confint(i, df = degf(PSobj), parm = svyVar)
         colnames(ci) = str_replace(colnames(ci), "%", " %")
         ci
-      })%>% do.call("cbind", .)
+      })
+      tCI = do.call("cbind", tCI)
       PSest = PSest[[1]]
     }
     if(family$family == "gaussian"){
-      PSest <- paste0('~', svyVar) %>% as.formula(.) %>% svymean(., PSobj)
+      PSest <- paste0('~', svyVar) %>% as.formula() %>% svymean(PSobj)
       tCI <- sapply(invlvls, confint, object = PSest, df = degf(PSobj),
-                    parm = svyVar, simplify = F) %>% do.call("cbind", .)
+                    parm = svyVar, simplify = F)
+      tCI = do.call("cbind", tCI)
     }
 
     # get estmates and standard error
-    infr <- cbind(est = PSest[svyVar], se = sqrt(diag(vcov(PSest))), tCI, sample_size = degf(PSobj) + 1, population_size = nrow(filter(svypopu, eval(parse(text = s)))))
+    infr <- cbind(est = PSest[svyVar], se = sqrt(diag(vcov(PSest))), tCI, sample_size = degf(PSobj) + 1, population_size = nrow(dplyr::filter(svypopu, eval(parse(text = s)))))
     if(is.null(weights))
       rownames(infr) = "postStratify"
     else{
@@ -152,10 +301,39 @@ postStr_wt <- function(svysmpl, svypopu, auxVars, svyVar, subset = NULL, family 
 }
 
 
+#' Title
+#'
+#' @param svysmpl A dataframe or tibble to represent 'samples'.
+#' @param svypopu A dataframe or tibble to represent 'population'.
+#' @param outcome_formula A formula for stan.
+#' @param BayesFun Function name for stan
+#' @param subset A character vector. Each element is a string representing a filtering condition to select subset of samples and population. Default is NULL. When this parameter is NULL, the analysis is only performed on the whole data. If subsets are specified, the estimates for the whole data will also be calculated.
+#' @param family The distribution family of outcome variable. Currently we only support \code{\link[stats]{gaussian}} and \code{\link[stats]{binomial}}.
+#' @param invlvls A numeric vector of values. Each specifies a confidence level of CI for estimators. If more than one values are specified, then multiple CIs are calculated.
+#' @param weights A numeric vector of case weights. The length should be equal to the number of cases in 'samples'.
+#' @param nskip A integer to specify the number of burn-in iterations of each chain in MCMC for stan models. Default is 1000.
+#' @param npost A integer to specify the number of posterior sampling iteration of each chain in MCMC for stan models. Default is 1000.
+#' @param nchain A integer to specify the number of MCMC chains for stan models. Default is 4.
+#' @param printmod A logical to indicate if print posterior estimates
+#' @param doFigure A logical to indicate if print MCMC figures
+#' @param useTrueSample A logical to indicate if the estimator uses samples information
+#' @param stan_verbose A logical to indicate if print MCMC information in stan
+#' @param shortest_CI  A logical scalar; if true, the calculated credible intervals for stan models are highest posterior density intervals. Otherwise the intervals are symmetric. Default is false.
+#' @return A list. Each element contains the Bayesian estimate and CIs for a subset or the whole data analysis.
+#'
+#' @import stats
+#' @import gtools
+#' @import rstanarm
+#' @import survey
+#' @import tidyverse
+#' @import mgcv
+#' @import dplyr
+#' @import stringr
+#'
 svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NULL, family = gaussian(), invlvls, weights = NULL, nskip = 1000, npost = 1000, nchain = 4, printmod = TRUE, doFigure = FALSE, useTrueSample = F, stan_verbose = F, shortest_CI = F) {
   #print(outcome_formula)
   subset = c("T", subset)
-  fmla <- outcome_formula[1] %>% as.formula(.)
+  fmla <- outcome_formula[1] %>% as.formula()
   #print("start fit model")
   if(is.null(weights)){
     if(!is.na(outcome_formula[2])){
@@ -177,7 +355,7 @@ svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NU
   #if (meth %in% c('GAMcatCov' , 'GAM-Cov', 'GAM-PS', 'GAM-lgtPS', 'GAM-slgtPS') ) bayesmod <- stan_gamm4(fmla, data = svysmpl)
   #bayesmod <- update(bayesmod, iter = 500)
 
-  if (printmod) summary(bayesmod) %>% print(.)
+  if (printmod) summary(bayesmod) %>% print()
 
   if (doFigure) {
     p1 <- pp_check(bayesmod)
@@ -190,7 +368,7 @@ svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NU
   }
   if(useTrueSample == F){
     infr = sapply(subset, function(s){
-      svypopu1 = filter(svypopu, eval(parse(text = s)))
+      svypopu1 = dplyr::filter(svypopu, eval(parse(text = s)))
       yhats <- posterior_epred(bayesmod, svypopu1)
 
       post_est = rowMeans(yhats)
@@ -201,14 +379,15 @@ svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NU
           ci = coda::HPDinterval(post_est, probs = level, names = T)
           names(ci) = paste(((1 - level)/2 * c(1, -1) + c(0, 1)) * 100, "%")
         }else{
-          ci = ((1 - level)/2 * c(1, -1) + c(0, 1)) %>%
-            quantile(post_est, probs = ., names = T)
+          ci = ((1 - level)/2 * c(1, -1) + c(0, 1))
+          ci = quantile(post_est, probs = ci, names = T)
           names(ci) = str_replace(names(ci), "%", " %")
         }
 
         ci
-      }, simplify = F) %>% do.call("c", .)
-      infr <- rbind(c(post_mean_est = mean(post_est), post_median_est = median(post_est), se = sd(post_est), tCI, sample_size = nrow(filter(svysmpl, eval(parse(text = s)))), population_size = nrow(svypopu1)))
+      }, simplify = F)
+      tCI = do.call("c", tCI)
+      infr <- rbind(c(post_mean_est = mean(post_est), post_median_est = median(post_est), se = sd(post_est), tCI, sample_size = nrow(dplyr::filter(svysmpl, eval(parse(text = s)))), population_size = nrow(svypopu1)))
     }, simplify = F)
     names(infr)[1] = "All"
     if(length(infr) == 1)
@@ -216,12 +395,12 @@ svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NU
     return(infr)
   }else{
     infr = sapply(subset, function(s){
-      svypopu1 = filter(svypopu, eval(parse(text = s)))
-      svysmpl1 = filter(svysmpl, eval(parse(text = s)))
+      svypopu1 = dplyr::filter(svypopu, eval(parse(text = s)))
+      svysmpl1 = dplyr::filter(svysmpl, eval(parse(text = s)))
 
       yhats <- posterior_predict(bayesmod, setdiff(svypopu1, svysmpl1), re.form = NA) # npost, non-sample_size
 
-      yhat_tot <- yhats %>% apply(., 1, sum) # npost * 1
+      yhat_tot <- yhats %>% apply(1, sum) # npost * 1
       yobs_tot <- sum(svysmpl1 %>% dplyr::select(str_split_1(outcome_formula[1], "~")[1])) # a single value
       post_est = (yhat_tot + yobs_tot) / nrow(svypopu1) #npost
       tCI = sapply(invlvls, function(level){
@@ -231,13 +410,14 @@ svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NU
           ci = coda::HPDinterval(post_est, prob = level, names = T)
           names(ci) = paste(((1 - level)/2 * c(1, -1) + c(0, 1)) * 100, "%")
         }else{
-          ci = ((1 - level)/2 * c(1, -1) + c(0, 1)) %>%
-            quantile(post_est, probs = ., names = T)
+          ci = ((1 - level)/2 * c(1, -1) + c(0, 1))
+          ci = quantile(post_est, probs = ci, names = T)
           names(ci) = str_replace(names(ci), "%", " %")
         }
-
         ci
-      }, simplify = F) %>% do.call("c", .)
+      }, simplify = F)
+
+      tCI = do.call("c", tCI)
       infr <- rbind(c(post_mean_est = mean(post_est), post_median_est = median(post_est), se = sd(post_est), tCI, sample_size = nrow(svysmpl1), population_size = nrow(svypopu1)))
       return(infr)
     }, simplify = F)
@@ -248,12 +428,12 @@ svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NU
 
 
 
-#' Title
+#' Auxiliary Variables in Survey Analysis
 #'@description Probability surveys often use auxiliary continuous data from administrative records, but the utility of this data is diminished when it is discretized for confidentiality.
 #'
 #'This function provides a user-friendly interface for different estimators with the discretized auxiliary variables.
 #'
-#'The estimators includes (weighted) sample mean, (weighted) raking, (weighted) post-stratification, and three Bayesian methods: MRP, GAMP(Generalized additive model of response propensity) and (weighted) linear regression. The three Bayesian models are based on \code{\link[rstan]} and \code{\link[rstanarm]}.
+#'The estimators includes (weighted) sample mean, (weighted) raking, (weighted) post-stratification, and three Bayesian methods: MRP, GAMP(Generalized additive model of response propensity) and (weighted) linear regression. The three Bayesian models are based on 'rstan' and 'rstanarm'.
 #'
 #' @param formula A string or formula for the specified formula for the outcome model. For non-model based methods(sample mean, raking, post-stratification), just include the outcome variable, such as "~Y". For model based methods (MRP, GAMP, LR), additional predictors can be specified as fixed effects term, such as "Y~X1+X2 + I(X^2)". For GAMP, smooth functions can be specified, such as "Y~X1 + s(X2, 10) + s(X3, by = X1)". Categorical variables are coded as dummy variables in model based methods.
 #' @param auxiliary A string for the specified formula for the auxiliary variables. For sample mean, just leave it as NULL. For raking, post-stratification, MRP, use string for an additive model, such as "Z1 + Z2 + Z3". MRP specifies random effects for terms in this parameter, such as "Z1 + Z2 + Z3" or "Z1 + Z2:Z3".
@@ -263,19 +443,29 @@ svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NU
 #' @param family The distribution family of outcome variable. Currently we only support \code{\link[stats]{gaussian}} and \code{\link[stats]{binomial}}.
 #' @param method A string specifying which model to use.
 #' @param weights A numeric vector of case weights. The length should be equal to the number of cases in 'samples'.
-#' @param levels A numeric vector of values in [0, 1]. Each specifies a confidence level of CI for estimators. If more than one values are specified, then multiple CIs are calculated.
+#' @param levels A numeric vector of values. Each specifies a confidence level of CI for estimators. If more than one values are specified, then multiple CIs are calculated.
 #' @param stan_verbose A logical scalar; if true, print all messages when running stan models. Default is false. This parameter only works for Bayesian models.
 #' @param show_plot A logical scalar; if true, show some diagnostic plots for stan models. Default is false. This parameter only works for Bayesian models.
 #' @param nskip A integer to specify the number of burn-in iterations of each chain in MCMC for stan models. Default is 1000. This parameter only works for Bayesian models.
 #' @param npost A integer to specify the number of posterior sampling iteration of each chain in MCMC for stan models. Default is 1000. This parameter only works for Bayesian models.
 #' @param nchain A integer to specify the number of MCMC chains for stan models. Default is 4. This parameter only works for Bayesian models.
 #' @param HPD_interval A logical scalar; if true, the calculated credible intervals for stan models are highest posterior density intervals. Otherwise the intervals are symmetric. Default is false. This parameter only works for Bayesian models.
-#' @param ...
+#'
+#' @import stats
+#' @import gtools
+#' @import rstanarm
+#' @import survey
+#' @import tidyverse
+#' @import mgcv
+#' @import dplyr
+#' @import stringr
+#'
 #'
 #' @return A list. Each element contains the estimate and CIs for a subset or the whole data analysis.
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' ## simulate data from the 'simulate' function, with nonlinear association setting 3. The continuous variable X is discretized into categorical variable auX_3 with 3 categories and auX_10 with 10 categories.
 #' data = simulate(N = 3000, discretize = c(3, 10), setting = 3, seed = 123)
 #'
@@ -288,23 +478,23 @@ svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NU
 #' IPW_sample_mean = auxsurvey("~Y1",  auxilary = NULL, weights = ipw, samples = samples, population = population, subset = c("Z1 == 1 & Z2 == 1"), method = "sample_mean", levels = 0.95)
 #'
 #' ## rake, with analysis on subsets Z1 == 1 and Z1 == 1 & Z2 == 1.
-#' rake = auxsurvey("~Y1",  auxilary = "Z1 + Z2 + Z3 + auX_10", samples = samples, population = population, subset = c("Z1 == 1", "Z1 == 1 & Z2 == 1"), method = "rake", levels = 0.95)
+#' rake = auxsurvey("~Y1",  auxiliary = "Z1 + Z2 + Z3 + auX_10", samples = samples, population = population, subset = c("Z1 == 1", "Z1 == 1 & Z2 == 1"), method = "rake", levels = 0.95)
 #'
 #' ## IPW post-stratification, no subset analysis.
-#' IPW_postStratify3 = auxsurvey("~Y1",  auxilary = "Z1 + Z2 + Z3 + auX_3", weights = ipw, samples = samples, population = population, method = "postStratify", levels = 0.95)
+#' IPW_postStratify3 = auxsurvey("~Y1",  auxiliary = "Z1 + Z2 + Z3 + auX_3", weights = ipw, samples = samples, population = population, method = "postStratify", levels = 0.95)
 #'
 #' ## MRP, with analysis on subsets Z1 == 1, Z1 == 1 & Z2 == 1, Z1 == 1 & Z2 == 1 & Z3 == 1.
-#' MRP = auxsurvey("Y1~1 + Z1",  auxilary = "Z2 + Z3:auX_10", samples = samples, population = population, subset = c("Z1 == 1", "Z1 == 1 & Z2 == 1", "Z1 == 1 & Z2 == 1 & Z3 == 1"), method = "MRP", levels = 0.95, nskip = 4000, npost = 4000, nchain = 1, stan_verbose = F, HPD_interval = T)
+#' MRP = auxsurvey("Y1~1 + Z1",  auxiliary = "Z2 + Z3:auX_10", samples = samples, population = population, subset = c("Z1 == 1", "Z1 == 1 & Z2 == 1", "Z1 == 1 & Z2 == 1 & Z3 == 1"), method = "MRP", levels = 0.95, nskip = 4000, npost = 4000, nchain = 1, stan_verbose = F, HPD_interval = T)
 #'
 #' ## GAMP, no subset analysis.
-#' GAMP = auxsurvey("Y1~1 + Z1 + Z2 + Z3",  auxilary = "s(auX_10) + s(logit_true_pi, by = Z1)", samples = samples, population = population, subset = NULL, method = "GAMP", levels = 0.95, nskip = 4000, npost = 4000, nchain = 1, stan_verbose = F, HPD_interval = T)
-#'
-auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, subset = NULL, family = gaussian(), method = c("sample_mean", "rake", "postStratify", "MRP", "GAMP", "linear"), weights = NULL, levels = c(0.95, 0.8, 0.5), stan_verbose = T, show_plot = T, nskip = 1000, npost = 1000, nchain = 4, HPD_interval = F, ...){
-  svyVar = str_trim(str_split_1(as.character(formula), "~"))
+#' GAMP = auxsurvey("Y1~1 + Z1 + Z2 + Z3",  auxiliary = "s(auX_10) + s(logit_true_pi, by = Z1)", samples = samples, population = population, subset = NULL, method = "GAMP", levels = 0.95, nskip = 4000, npost = 4000, nchain = 1, stan_verbose = F, HPD_interval = T)
+#' }
+auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, subset = NULL, family = gaussian(), method = c("sample_mean", "rake", "postStratify", "MRP", "GAMP", "linear"), weights = NULL, levels = c(0.95, 0.8, 0.5), stan_verbose = T, show_plot = T, nskip = 1000, npost = 1000, nchain = 4, HPD_interval = F){
+  svyVar = stringr::str_trim(str_split_1(as.character(formula), "~"))
   svyVar = svyVar[svyVar != ""][1]
   if(!is.null(auxiliary)){
     auxiliary = as.character(auxiliary)
-    auxiliary = str_remove_all(auxiliary, " ")
+    auxiliary = stringr::str_remove_all(auxiliary, " ")
     auxiliary = paste0(auxiliary, collapse = "+")
     if(!str_detect(auxiliary, "^~")){
       auxiliary = paste0("~",auxiliary)
@@ -326,17 +516,17 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
     return(uwt(samples, svyVar, subset, levels, weights))
   }
   if(method == "rake"){
-    covariates = str_trim(str_split(str_split_i(as.character(formula), "~", 2), "\\+", simplify = T))
+    covariates = stringr::str_trim(stringr::str_split(stringr::str_split_i(as.character(formula), "~", 2), "\\+", simplify = T))
     covariates = setdiff(covariates, svyVar)
     if("." %in% covariates){
       covariates = setdiff(names(samples), svyVar)
     }
-    auxiliary = str_trim(str_split(str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T))
+    auxiliary = stringr::str_trim(stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T))
     auxiliary = auxiliary[!is.na(auxiliary) & auxiliary != ""]
     return(rake_wt(samples, population, auxiliary, svyVar, subset, family = family, levels, weights, maxiter = 50))
   }
   if(method == "postStratify"){
-    covariates = str_trim(str_split(str_split_i(as.character(formula), "~", 2), "\\+", simplify = T))
+    covariates = stringr::str_trim(stringr::str_split(stringr::str_split_i(as.character(formula), "~", 2), "\\+", simplify = T))
     covariates = setdiff(covariates, svyVar)
     if("." %in% covariates){
       covariates = setdiff(names(samples), svyVar)
@@ -349,16 +539,16 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
     if(is.null(nskip)) nskip = 1000
     if(is.null(npost)) npost = 1000
     if(is.null(nchain)) nchain = 4
-    covariates = str_trim(str_split(str_split_i(as.character(formula), "~", 2), "\\+", simplify = T))
+    covariates = stringr::str_trim(stringr::str_split(stringr::str_split_i(as.character(formula), "~", 2), "\\+", simplify = T))
     covariates = setdiff(covariates, svyVar)
     if("." %in% covariates){
      covariates = setdiff(names(samples), svyVar)
     }
     samples = mutate_at(samples, all.vars(as.formula(auxiliary)), as.factor)
     population = mutate_at(population, all.vars(as.formula(auxiliary)), as.factor)
-    auxiliary = str_replace_all(auxiliary, "\\*", ":")
-    auxiliary = str_split_i(as.character(auxiliary), "~", 2)
-    auxiliary = str_split(auxiliary, "\\+", simplify = T)
+    auxiliary = stringr::str_replace_all(auxiliary, "\\*", ":")
+    auxiliary = stringr::str_split_i(as.character(auxiliary), "~", 2)
+    auxiliary = stringr::str_split(auxiliary, "\\+", simplify = T)
 
     if(length(covariates) == 0){
       outcome_formula = paste0(paste0(svyVar, "~"), paste0("(1|", auxiliary, ")", collapse = "+"))
@@ -394,11 +584,11 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
     population = mutate_at(population, intersect(all.vars(as.formula(auxiliary)), colnames(population)), as.numeric)
 
 
-    auxiliary_fixed = setdiff(str_split(str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T), all.vars(as.formula(auxiliary)))
+    auxiliary_fixed = setdiff(stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T), all.vars(as.formula(auxiliary)))
 
 
     outcome_formula = paste(formula, paste(auxiliary_fixed, collapse = "+"), sep = "+")
-    auxiliary_random = intersect(str_split(str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T), all.vars(as.formula(auxiliary)))
+    auxiliary_random = intersect(stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T), all.vars(as.formula(auxiliary)))
     samples = mutate_at(samples, auxiliary_random, as.factor)
     population = mutate_at(population, auxiliary_random, as.factor)
     if(length(auxiliary_random) != 0){
@@ -434,7 +624,7 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
     population = mutate_at(population, intersect(all.vars(as.formula(auxiliary)), colnames(population)), as.numeric)
 
 
-    auxiliary_fixed = setdiff(str_split(str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T), all.vars(as.formula(auxiliary)))
+    auxiliary_fixed = setdiff(stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T), all.vars(as.formula(auxiliary)))
 
 
     outcome_formula = paste(formula, paste(auxiliary_fixed, collapse = "+"), collapse = "+")

@@ -19,7 +19,6 @@ Authors@R:
              email = "qc2138@cumc.columbia.edu")
     )
 Description: Probability surveys often use auxiliary continuous data from administrative records, but the utility of this data is diminished when it is discretized for confidentiality. We provide a set of survey estimators to make full use of information from the discretized variables.
-License: use_apache_license()
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
@@ -33,4 +32,8 @@ Imports:
     gtools,
     coda,
     scales,
-    BART3
+    BART3,
+    dplyr,
+    stringr,
+    gridExtra
+License: Apache License (>= 2)

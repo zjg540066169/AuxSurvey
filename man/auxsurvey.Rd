@@ -2,7 +2,7 @@
 % Please edit documentation in R/AuxSurvey.R
 \name{auxsurvey}
 \alias{auxsurvey}
-\title{Title}
+\title{Auxiliary Variables in Survey Analysis}
 \usage{
 auxsurvey(
   formula,
@@ -19,8 +19,7 @@ auxsurvey(
   nskip = 1000,
   npost = 1000,
   nchain = 4,
-  HPD_interval = F,
-  ...
+  HPD_interval = F
 )
 }
 \arguments{
@@ -40,7 +39,7 @@ auxsurvey(
 
 \item{weights}{A numeric vector of case weights. The length should be equal to the number of cases in 'samples'.}
 
-\item{levels}{A numeric vector of values in \link{0, 1}. Each specifies a confidence level of CI for estimators. If more than one values are specified, then multiple CIs are calculated.}
+\item{levels}{A numeric vector of values. Each specifies a confidence level of CI for estimators. If more than one values are specified, then multiple CIs are calculated.}
 
 \item{stan_verbose}{A logical scalar; if true, print all messages when running stan models. Default is false. This parameter only works for Bayesian models.}
 
@@ -53,8 +52,6 @@ auxsurvey(
 \item{nchain}{A integer to specify the number of MCMC chains for stan models. Default is 4. This parameter only works for Bayesian models.}
 
 \item{HPD_interval}{A logical scalar; if true, the calculated credible intervals for stan models are highest posterior density intervals. Otherwise the intervals are symmetric. Default is false. This parameter only works for Bayesian models.}
-
-\item{...}{}
 }
 \value{
 A list. Each element contains the estimate and CIs for a subset or the whole data analysis.
@@ -64,9 +61,10 @@ Probability surveys often use auxiliary continuous data from administrative reco
 
 This function provides a user-friendly interface for different estimators with the discretized auxiliary variables.
 
-The estimators includes (weighted) sample mean, (weighted) raking, (weighted) post-stratification, and three Bayesian methods: MRP, GAMP(Generalized additive model of response propensity) and (weighted) linear regression. The three Bayesian models are based on \code{\link[rstan]} and \code{\link[rstanarm]}.
+The estimators includes (weighted) sample mean, (weighted) raking, (weighted) post-stratification, and three Bayesian methods: MRP, GAMP(Generalized additive model of response propensity) and (weighted) linear regression. The three Bayesian models are based on 'rstan' and 'rstanarm'.
 }
 \examples{
+\dontrun{
 ## simulate data from the 'simulate' function, with nonlinear association setting 3. The continuous variable X is discretized into categorical variable auX_3 with 3 categories and auX_10 with 10 categories.
 data = simulate(N = 3000, discretize = c(3, 10), setting = 3, seed = 123)
 
@@ -79,15 +77,15 @@ ipw = 1 / samples$true_pi # get the inverse probability weighting
 IPW_sample_mean = auxsurvey("~Y1",  auxilary = NULL, weights = ipw, samples = samples, population = population, subset = c("Z1 == 1 & Z2 == 1"), method = "sample_mean", levels = 0.95)
 
 ## rake, with analysis on subsets Z1 == 1 and Z1 == 1 & Z2 == 1.
-rake = auxsurvey("~Y1",  auxilary = "Z1 + Z2 + Z3 + auX_10", samples = samples, population = population, subset = c("Z1 == 1", "Z1 == 1 & Z2 == 1"), method = "rake", levels = 0.95)
+rake = auxsurvey("~Y1",  auxiliary = "Z1 + Z2 + Z3 + auX_10", samples = samples, population = population, subset = c("Z1 == 1", "Z1 == 1 & Z2 == 1"), method = "rake", levels = 0.95)
 
 ## IPW post-stratification, no subset analysis.
-IPW_postStratify3 = auxsurvey("~Y1",  auxilary = "Z1 + Z2 + Z3 + auX_3", weights = ipw, samples = samples, population = population, method = "postStratify", levels = 0.95)
+IPW_postStratify3 = auxsurvey("~Y1",  auxiliary = "Z1 + Z2 + Z3 + auX_3", weights = ipw, samples = samples, population = population, method = "postStratify", levels = 0.95)
 
 ## MRP, with analysis on subsets Z1 == 1, Z1 == 1 & Z2 == 1, Z1 == 1 & Z2 == 1 & Z3 == 1.
-MRP = auxsurvey("Y1~1 + Z1",  auxilary = "Z2 + Z3:auX_10", samples = samples, population = population, subset = c("Z1 == 1", "Z1 == 1 & Z2 == 1", "Z1 == 1 & Z2 == 1 & Z3 == 1"), method = "MRP", levels = 0.95, nskip = 4000, npost = 4000, nchain = 1, stan_verbose = F, HPD_interval = T)
+MRP = auxsurvey("Y1~1 + Z1",  auxiliary = "Z2 + Z3:auX_10", samples = samples, population = population, subset = c("Z1 == 1", "Z1 == 1 & Z2 == 1", "Z1 == 1 & Z2 == 1 & Z3 == 1"), method = "MRP", levels = 0.95, nskip = 4000, npost = 4000, nchain = 1, stan_verbose = F, HPD_interval = T)
 
 ## GAMP, no subset analysis.
-GAMP = auxsurvey("Y1~1 + Z1 + Z2 + Z3",  auxilary = "s(auX_10) + s(logit_true_pi, by = Z1)", samples = samples, population = population, subset = NULL, method = "GAMP", levels = 0.95, nskip = 4000, npost = 4000, nchain = 1, stan_verbose = F, HPD_interval = T)
-
+GAMP = auxsurvey("Y1~1 + Z1 + Z2 + Z3",  auxiliary = "s(auX_10) + s(logit_true_pi, by = Z1)", samples = samples, population = population, subset = NULL, method = "GAMP", levels = 0.95, nskip = 4000, npost = 4000, nchain = 1, stan_verbose = F, HPD_interval = T)
+}
 }
