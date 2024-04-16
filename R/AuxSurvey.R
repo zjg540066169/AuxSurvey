@@ -15,8 +15,6 @@ library(rstanarm)
 #'
 #' @import stats
 #' @import gtools
-#' @import rstanarm
-#' @import survey
 #' @import tidyverse
 #' @import mgcv
 #' @import dplyr
