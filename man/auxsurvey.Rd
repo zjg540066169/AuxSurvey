@@ -65,27 +65,43 @@ The estimators includes (weighted) sample mean, (weighted) raking, (weighted) po
 }
 \examples{
 \dontrun{
-## simulate data from the 'simulate' function, with nonlinear association setting 3. The continuous variable X is discretized into categorical variable auX_3 with 3 categories and auX_10 with 10 categories.
+## simulate data from the 'simulate' function, with nonlinear association setting 3.
+## The continuous variable X is discretized into categorical variable auX_3 with 3 categories,
+## and auX_10 with 10 categories.
 data = simulate(N = 3000, discretize = c(3, 10), setting = 3, seed = 123)
 
-## The dataset consists of a continuous outcome Y, 3 binary variables Z1, Z2, Z3. Discretized variables auX_3 and auX_10. Propensity scores true_pi and it log transformation logit_true_pi are calculated.
+## The dataset consists of a continuous outcome Y, 3 binary variables Z1, Z2, Z3;
+## discretized variables auX_3 and auX_10.
+## Propensity scores true_pi and it log transformation logit_true_pi are calculated.
 population = data$population # get population, 3000 cases
 samples = data$samples # get samples, about 600 cases
 ipw = 1 / samples$true_pi # get the inverse probability weighting
 
 ## IPW sample mean, with analysis on subset Z1 == 1 & Z2 == 1.
-IPW_sample_mean = auxsurvey("~Y1",  auxilary = NULL, weights = ipw, samples = samples, population = population, subset = c("Z1 == 1 & Z2 == 1"), method = "sample_mean", levels = 0.95)
+IPW_sample_mean = auxsurvey("~Y1",  auxiliary = NULL, weights = ipw,
+                   samples = samples, population = population,
+                   subset = c("Z1 == 1 & Z2 == 1"), method = "sample_mean", levels = 0.95)
 
 ## rake, with analysis on subsets Z1 == 1 and Z1 == 1 & Z2 == 1.
-rake = auxsurvey("~Y1",  auxiliary = "Z1 + Z2 + Z3 + auX_10", samples = samples, population = population, subset = c("Z1 == 1", "Z1 == 1 & Z2 == 1"), method = "rake", levels = 0.95)
+rake = auxsurvey("~Y1",  auxiliary = "Z1 + Z2 + Z3 + auX_10", samples = samples,
+         population = population, subset = c("Z1 == 1", "Z1 == 1 & Z2 == 1"),
+         method = "rake", levels = 0.95)
 
 ## IPW post-stratification, no subset analysis.
-IPW_postStratify3 = auxsurvey("~Y1",  auxiliary = "Z1 + Z2 + Z3 + auX_3", weights = ipw, samples = samples, population = population, method = "postStratify", levels = 0.95)
+IPW_postStratify3 = auxsurvey("~Y1",  auxiliary = "Z1 + Z2 + Z3 + auX_3", weights = ipw,
+                     samples = samples, population = population,
+                     method = "postStratify", levels = 0.95)
 
 ## MRP, with analysis on subsets Z1 == 1, Z1 == 1 & Z2 == 1, Z1 == 1 & Z2 == 1 & Z3 == 1.
-MRP = auxsurvey("Y1~1 + Z1",  auxiliary = "Z2 + Z3:auX_10", samples = samples, population = population, subset = c("Z1 == 1", "Z1 == 1 & Z2 == 1", "Z1 == 1 & Z2 == 1 & Z3 == 1"), method = "MRP", levels = 0.95, nskip = 4000, npost = 4000, nchain = 1, stan_verbose = F, HPD_interval = T)
+MRP = auxsurvey("Y1~1 + Z1",  auxiliary = "Z2 + Z3:auX_10", samples = samples,
+        population = population,
+        subset = c("Z1 == 1", "Z1 == 1 & Z2 == 1", "Z1 == 1 & Z2 == 1 & Z3 == 1"),
+        method = "MRP", levels = 0.95, nskip = 4000, npost = 4000,
+        nchain = 1, stan_verbose = F, HPD_interval = T)
 
 ## GAMP, no subset analysis.
-GAMP = auxsurvey("Y1~1 + Z1 + Z2 + Z3",  auxiliary = "s(auX_10) + s(logit_true_pi, by = Z1)", samples = samples, population = population, subset = NULL, method = "GAMP", levels = 0.95, nskip = 4000, npost = 4000, nchain = 1, stan_verbose = F, HPD_interval = T)
+GAMP = auxsurvey("Y1~1 + Z1 + Z2 + Z3",  auxiliary = "s(auX_10) + s(logit_true_pi, by = Z1)",
+          samples = samples, population = population, subset = NULL, method = "GAMP",
+         levels = 0.95, nskip = 4000, npost = 4000, nchain = 1, stan_verbose = F, HPD_interval = T)
 }
 }

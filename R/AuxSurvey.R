@@ -1,9 +1,4 @@
 library(gtools)
-library(survey)
-library(tidyverse)
-library(mgcv)
-library(rstanarm)
-
 library(tidyverse)
 library(mgcv)
 library(rstanarm)
@@ -110,6 +105,7 @@ simulate = function(N = 3000, discretize =c(3, 5, 10), setting = c(1,2,3), seed 
 #' @import tidyverse
 #' @import mgcv
 #' @import dplyr
+#' @import rlang
 #'
 uwt <- function(svysmpl, svyVar, subset = NULL, invlvls, weights = NULL) {
   subset = c("T", subset)
@@ -166,9 +162,9 @@ rake_wt <- function(svysmpl, svypopu, auxVars, svyVar, subset = NULL, family = g
   subset = c("T", subset)
   svysmpl$fpc <- nrow(svypopu)
   if(is.null(weights))
-    des <- svydesign(ids = ~1, weights = ~1, data = svysmpl, fpc = ~fpc)
+    des <- survey::svydesign(ids = ~1, weights = ~1, data = svysmpl, fpc = ~fpc)
   else{
-    des <- svydesign(ids = ~1, weights = ~weights, data = svysmpl, fpc = ~fpc)
+    des <- survey::svydesign(ids = ~1, weights = ~weights, data = svysmpl, fpc = ~fpc)
   }
   popu_tab <- lapply(auxVars, function (Var) {
     Var = paste(all.vars(as.formula(paste0("~", Var))), collapse = "+")
@@ -180,15 +176,15 @@ rake_wt <- function(svysmpl, svypopu, auxVars, svyVar, subset = NULL, family = g
     Var = paste(all.vars(as.formula(paste0("~", Var))), collapse = "+")
     paste('~', Var, sep = ' ') %>% as.formula() %>% return()
   } )
-  rakingobj <- rake(des, fmla_list, popu_tab,
-                    control = list(maxit = maxiter, epsilon = 1, verbose = FALSE) )
+  rakingobj <- survey::rake(des, fmla_list, popu_tab,
+                    control = list(maxit = maxiter, epsilon = 1, verbose = FALSE))
   infr = sapply(subset, function(s){
     rakingobj = subset(rakingobj, eval(parse(text = s)))
     if(family$family == "binomial"){
       suppressWarnings(rakest <- sapply(invlvls, function(lv) paste0('~', svyVar) %>% as.formula() %>%
-        svyciprop(rakingobj, method = "logit", level = lv), simplify = F))
+                                          survey::svyciprop(rakingobj, method = "logit", level = lv), simplify = F))
       tCI <- lapply(rakest, function(i){
-        ci = confint(i, df = degf(rakingobj), parm = svyVar)
+        ci = confint(i, df = survey::degf(rakingobj), parm = svyVar)
         colnames(ci) = stringr::str_replace(colnames(ci), "%", " %")
         ci
       })
@@ -197,12 +193,12 @@ rake_wt <- function(svysmpl, svypopu, auxVars, svyVar, subset = NULL, family = g
     }
     if(family$family == "gaussian"){
       rakest <- paste0('~', svyVar) %>% as.formula() %>%
-        svymean(rakingobj)
-      tCI <- sapply(invlvls, confint, object = rakest, df = degf(rakingobj),
+        survey::svymean(rakingobj)
+      tCI <- sapply(invlvls, confint, object = rakest, df = survey::degf(rakingobj),
                     parm = svyVar, simplify = F)
       tCI = do.call("cbind", tCI)
     }
-    infr <- cbind(est = rakest[svyVar], se = sqrt(diag(vcov(rakest))), tCI, sample_size = degf(rakingobj) + 1, population_size = nrow(dplyr::filter(svypopu, eval(parse(text = s)))))
+    infr <- cbind(est = rakest[svyVar], se = sqrt(diag(vcov(rakest))), tCI, sample_size = survey::degf(rakingobj) + 1, population_size = nrow(dplyr::filter(svypopu, eval(parse(text = s)))))
     if(is.null(weights))
       rownames(infr) = "rake"
     else{
@@ -244,9 +240,9 @@ postStr_wt <- function(svysmpl, svypopu, auxVars, svyVar, subset = NULL, family 
 
   # specify svydesign
   if(is.null(weights))
-    des <- svydesign(ids = ~1, weights = ~1, data = svysmpl, fpc = ~fpc)
+    des <- survey::svydesign(ids = ~1, weights = ~1, data = svysmpl, fpc = ~fpc)
   else{
-    des <- svydesign(ids = ~1, weights = ~weights, data = svysmpl, fpc = ~fpc)
+    des <- survey::svydesign(ids = ~1, weights = ~weights, data = svysmpl, fpc = ~fpc)
   }
 
 
@@ -255,7 +251,7 @@ postStr_wt <- function(svysmpl, svypopu, auxVars, svyVar, subset = NULL, family 
 
   # set for post-stratification
   tab <- xtabs(fmla, svypopu)
-  PSobj <- postStratify(des, fmla, tab, partial = TRUE)
+  PSobj <- survey::postStratify(des, fmla, tab, partial = TRUE)
   #d = population[population$Z3 == 0 &population$auX_5  == 1,  ]
   #table(d$Z1, d$Z2)
   infr = sapply(subset, function(s){
@@ -269,9 +265,9 @@ postStr_wt <- function(svysmpl, svypopu, auxVars, svyVar, subset = NULL, family 
     # so sapply function will calculate every confidence intervals separately
     if(family$family == "binomial"){
       suppressWarnings(PSest <- sapply(invlvls, function(lv) paste0('~', svyVar) %>% as.formula() %>%
-                         svyciprop(PSobj, method = "logit", level = lv), simplify = F))
+                                         survey::svyciprop(PSobj, method = "logit", level = lv), simplify = F))
       tCI <- lapply(PSest, function(i){
-        ci = confint(i, df = degf(PSobj), parm = svyVar)
+        ci = confint(i, df = survey::degf(PSobj), parm = svyVar)
         colnames(ci) = str_replace(colnames(ci), "%", " %")
         ci
       })
@@ -279,14 +275,14 @@ postStr_wt <- function(svysmpl, svypopu, auxVars, svyVar, subset = NULL, family 
       PSest = PSest[[1]]
     }
     if(family$family == "gaussian"){
-      PSest <- paste0('~', svyVar) %>% as.formula() %>% svymean(PSobj)
-      tCI <- sapply(invlvls, confint, object = PSest, df = degf(PSobj),
+      PSest <- paste0('~', svyVar) %>% as.formula() %>% survey::svymean(PSobj)
+      tCI <- sapply(invlvls, confint, object = PSest, df = survey::degf(PSobj),
                     parm = svyVar, simplify = F)
       tCI = do.call("cbind", tCI)
     }
 
     # get estmates and standard error
-    infr <- cbind(est = PSest[svyVar], se = sqrt(diag(vcov(PSest))), tCI, sample_size = degf(PSobj) + 1, population_size = nrow(dplyr::filter(svypopu, eval(parse(text = s)))))
+    infr <- cbind(est = PSest[svyVar], se = sqrt(diag(vcov(PSest))), tCI, sample_size = survey::degf(PSobj) + 1, population_size = nrow(dplyr::filter(svypopu, eval(parse(text = s)))))
     if(is.null(weights))
       rownames(infr) = "postStratify"
     else{
@@ -466,28 +462,44 @@ svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NU
 #'
 #' @examples
 #' \dontrun{
-#' ## simulate data from the 'simulate' function, with nonlinear association setting 3. The continuous variable X is discretized into categorical variable auX_3 with 3 categories and auX_10 with 10 categories.
+#' ## simulate data from the 'simulate' function, with nonlinear association setting 3.
+#' ## The continuous variable X is discretized into categorical variable auX_3 with 3 categories,
+#' ## and auX_10 with 10 categories.
 #' data = simulate(N = 3000, discretize = c(3, 10), setting = 3, seed = 123)
 #'
-#' ## The dataset consists of a continuous outcome Y, 3 binary variables Z1, Z2, Z3. Discretized variables auX_3 and auX_10. Propensity scores true_pi and it log transformation logit_true_pi are calculated.
+#' ## The dataset consists of a continuous outcome Y, 3 binary variables Z1, Z2, Z3;
+#' ## discretized variables auX_3 and auX_10.
+#' ## Propensity scores true_pi and it log transformation logit_true_pi are calculated.
 #' population = data$population # get population, 3000 cases
 #' samples = data$samples # get samples, about 600 cases
 #' ipw = 1 / samples$true_pi # get the inverse probability weighting
 #'
 #' ## IPW sample mean, with analysis on subset Z1 == 1 & Z2 == 1.
-#' IPW_sample_mean = auxsurvey("~Y1",  auxilary = NULL, weights = ipw, samples = samples, population = population, subset = c("Z1 == 1 & Z2 == 1"), method = "sample_mean", levels = 0.95)
+#' IPW_sample_mean = auxsurvey("~Y1",  auxiliary = NULL, weights = ipw,
+#'                    samples = samples, population = population,
+#'                    subset = c("Z1 == 1 & Z2 == 1"), method = "sample_mean", levels = 0.95)
 #'
 #' ## rake, with analysis on subsets Z1 == 1 and Z1 == 1 & Z2 == 1.
-#' rake = auxsurvey("~Y1",  auxiliary = "Z1 + Z2 + Z3 + auX_10", samples = samples, population = population, subset = c("Z1 == 1", "Z1 == 1 & Z2 == 1"), method = "rake", levels = 0.95)
+#' rake = auxsurvey("~Y1",  auxiliary = "Z1 + Z2 + Z3 + auX_10", samples = samples,
+#'          population = population, subset = c("Z1 == 1", "Z1 == 1 & Z2 == 1"),
+#'          method = "rake", levels = 0.95)
 #'
 #' ## IPW post-stratification, no subset analysis.
-#' IPW_postStratify3 = auxsurvey("~Y1",  auxiliary = "Z1 + Z2 + Z3 + auX_3", weights = ipw, samples = samples, population = population, method = "postStratify", levels = 0.95)
+#' IPW_postStratify3 = auxsurvey("~Y1",  auxiliary = "Z1 + Z2 + Z3 + auX_3", weights = ipw,
+#'                      samples = samples, population = population,
+#'                      method = "postStratify", levels = 0.95)
 #'
 #' ## MRP, with analysis on subsets Z1 == 1, Z1 == 1 & Z2 == 1, Z1 == 1 & Z2 == 1 & Z3 == 1.
-#' MRP = auxsurvey("Y1~1 + Z1",  auxiliary = "Z2 + Z3:auX_10", samples = samples, population = population, subset = c("Z1 == 1", "Z1 == 1 & Z2 == 1", "Z1 == 1 & Z2 == 1 & Z3 == 1"), method = "MRP", levels = 0.95, nskip = 4000, npost = 4000, nchain = 1, stan_verbose = F, HPD_interval = T)
+#' MRP = auxsurvey("Y1~1 + Z1",  auxiliary = "Z2 + Z3:auX_10", samples = samples,
+#'         population = population,
+#'         subset = c("Z1 == 1", "Z1 == 1 & Z2 == 1", "Z1 == 1 & Z2 == 1 & Z3 == 1"),
+#'         method = "MRP", levels = 0.95, nskip = 4000, npost = 4000,
+#'         nchain = 1, stan_verbose = F, HPD_interval = T)
 #'
 #' ## GAMP, no subset analysis.
-#' GAMP = auxsurvey("Y1~1 + Z1 + Z2 + Z3",  auxiliary = "s(auX_10) + s(logit_true_pi, by = Z1)", samples = samples, population = population, subset = NULL, method = "GAMP", levels = 0.95, nskip = 4000, npost = 4000, nchain = 1, stan_verbose = F, HPD_interval = T)
+#' GAMP = auxsurvey("Y1~1 + Z1 + Z2 + Z3",  auxiliary = "s(auX_10) + s(logit_true_pi, by = Z1)",
+#'           samples = samples, population = population, subset = NULL, method = "GAMP",
+#'          levels = 0.95, nskip = 4000, npost = 4000, nchain = 1, stan_verbose = F, HPD_interval = T)
 #' }
 auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, subset = NULL, family = gaussian(), method = c("sample_mean", "rake", "postStratify", "MRP", "GAMP", "linear"), weights = NULL, levels = c(0.95, 0.8, 0.5), stan_verbose = T, show_plot = T, nskip = 1000, npost = 1000, nchain = 4, HPD_interval = F){
   svyVar = stringr::str_trim(str_split_1(as.character(formula), "~"))

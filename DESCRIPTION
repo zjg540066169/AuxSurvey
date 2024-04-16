@@ -8,7 +8,9 @@ Authors@R:
              email = "jz3183@cumc.columbia.edu"),
       person(given = "Yutao",
              family = "Liu",
-             role = c("aut")),
+             role = c("aut"),
+             email = "yl3050@caa.Columbia.edu"
+             ),
       person(given = "Sharifa",
              family = "Williams",
              role = c("aut"),
@@ -26,14 +28,14 @@ Depends:
     mgcv,
     rstanarm,
     stats,
-    survey,
     tidyverse
 Imports: 
+    survey,
     gtools,
     coda,
-    scales,
     BART3,
     dplyr,
     stringr,
-    gridExtra
+    gridExtra,
+    rlang
 License: Apache License (>= 2)
