@@ -411,7 +411,7 @@ svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NU
           names(ci) = str_replace(names(ci), "%", " %")
         }
         ci
-      }, simplify = F) d
+      }, simplify = F)
 
       tCI = do.call("c", tCI)
       infr <- rbind(c(post_mean_est = mean(post_est), post_median_est = median(post_est), se = sd(post_est), tCI, sample_size = nrow(svysmpl1), population_size = nrow(svypopu1)))
