@@ -67,13 +67,13 @@ simulate = function(N = 3000, discretize =c(3, 5, 10), setting = c(1,2,3), seed 
   colnames(population) = c("id", "Z1", "Z2", "Z3", "X", "W", colnames(auX), colnames(auW), "Y1", "Y2", "true_pi", "logit_true_pi", "inclusion")
   colnames(samples) = c("id", "Z1", "Z2", "Z3", "X", "W", colnames(auX), colnames(auW), "Y1", "Y2", "true_pi", "logit_true_pi", "inclusion")
 
-  ps_model = BART::pbart(as.matrix(population[, c("Z1", "Z2", "Z3", "X")]), population$inclusion, type = "pbart", ntree=50, keepevery= 1, ndpost = 100)
+  ps_model = BART::pbart(as.matrix(population[, c("Z1", "Z2", "Z3", "X")]), population$inclusion, ntree=50, keepevery= 1, ndpost = 100)
   population$estimated_pi = predict(ps_model, as.matrix(population[, c("Z1", "Z2", "Z3", "X")]))$prob.test.mean
   samples$estimated_pi = predict(ps_model, as.matrix(samples[, c("Z1", "Z2", "Z3", "X")]))$prob.test.mean
   population$logit_estimated_pi = logit(population$estimated_pi)
   samples$logit_estimated_pi = logit(samples$estimated_pi)
 
-  ps_model_with_W <- BART::pbart(as.matrix(population[, c("Z1", "Z2", "Z3", "X", "W")]), population$inclusion, type = "pbart", ntree=50, keepevery= 1, ndpost = 100)
+  ps_model_with_W <- BART::pbart(as.matrix(population[, c("Z1", "Z2", "Z3", "X", "W")]), population$inclusion, ntree=50, keepevery= 1, ndpost = 100)
   population$estimated_pi_with_W = predict(ps_model_with_W, as.matrix(population[, c("Z1", "Z2", "Z3", "X", "W")]))$prob.test.mean
   samples$estimated_pi_with_W = predict(ps_model_with_W, as.matrix(samples[, c("Z1", "Z2", "Z3", "X", "W")]))$prob.test.mean
   population$logit_estimated_pi_with_W = logit(population$estimated_pi_with_W)
@@ -392,11 +392,13 @@ svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NU
       svypopu1 = dplyr::filter(svypopu, eval(parse(text = s)))
       svysmpl1 = dplyr::filter(svysmpl, eval(parse(text = s)))
 
-      yhats <- posterior_predict(bayesmod, setdiff(svypopu1, svysmpl1), re.form = NA) # npost, non-sample_size
+      yhats_pop <- posterior_predict(bayesmod, svypopu1, re.form = NA) # npost, non-sample_size
+      yhats_sam <- posterior_predict(bayesmod, svysmpl1, re.form = NA)
 
-      yhat_tot <- yhats %>% apply(1, sum) # npost * 1
+      yhats_pop_tot <- yhats_pop %>% apply(1, sum) # npost * 1
+      yhats_sam_tot <- yhats_sam %>% apply(1, sum) # npost * 1
       yobs_tot <- sum(svysmpl1 %>% dplyr::select(str_split_1(outcome_formula[1], "~")[1])) # a single value
-      post_est = (yhat_tot + yobs_tot) / nrow(svypopu1) #npost
+      post_est = (yhats_pop_tot + yobs_tot - yhats_sam_tot) / nrow(svypopu1) #npost
       tCI = sapply(invlvls, function(level){
         #confint(post_est, level = 0.95)
         if(shortest_CI){
@@ -409,7 +411,7 @@ svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NU
           names(ci) = str_replace(names(ci), "%", " %")
         }
         ci
-      }, simplify = F)
+      }, simplify = F) d
 
       tCI = do.call("c", tCI)
       infr <- rbind(c(post_mean_est = mean(post_est), post_median_est = median(post_est), se = sd(post_est), tCI, sample_size = nrow(svysmpl1), population_size = nrow(svypopu1)))
