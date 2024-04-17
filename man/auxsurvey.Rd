@@ -64,7 +64,7 @@ This function provides a user-friendly interface for different estimators with t
 The estimators includes (weighted) sample mean, (weighted) raking, (weighted) post-stratification, and three Bayesian methods: MRP, GAMP(Generalized additive model of response propensity) and (weighted) linear regression. The three Bayesian models are based on 'rstan' and 'rstanarm'.
 }
 \examples{
-\dontrun{
+
 ## simulate data from the 'simulate' function, with nonlinear association setting 3.
 ## The continuous variable X is discretized into categorical variable auX_3 with 3 categories,
 ## and auX_10 with 10 categories.
@@ -106,5 +106,5 @@ MRP = auxsurvey("Y1~1 + Z1",  auxiliary = "Z2 + Z3:auX_10", samples = samples,
 GAMP = auxsurvey("Y1~1 + Z1 + Z2 + Z3",  auxiliary = "s(auX_10) + s(logit_true_pi, by = Z1)",
           samples = samples, population = population, subset = NULL, method = "GAMP",
          levels = 0.95, nskip = 4000, npost = 4000, nchain = 1, stan_verbose = F, HPD_interval = T)
-}
+
 }
