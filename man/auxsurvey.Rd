@@ -14,12 +14,12 @@ auxsurvey(
   method = c("sample_mean", "rake", "postStratify", "MRP", "GAMP", "linear"),
   weights = NULL,
   levels = c(0.95, 0.8, 0.5),
-  stan_verbose = T,
-  show_plot = T,
+  stan_verbose = TRUE,
+  show_plot = TRUE,
   nskip = 1000,
   npost = 1000,
   nchain = 4,
-  HPD_interval = F
+  HPD_interval = FALSE
 )
 }
 \arguments{

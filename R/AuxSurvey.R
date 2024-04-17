@@ -499,7 +499,7 @@ svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NU
 #'           samples = samples, population = population, subset = NULL, method = "GAMP",
 #'          levels = 0.95, nskip = 4000, npost = 4000, nchain = 1, stan_verbose = F, HPD_interval = T)
 #' }
-auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, subset = NULL, family = gaussian(), method = c("sample_mean", "rake", "postStratify", "MRP", "GAMP", "linear"), weights = NULL, levels = c(0.95, 0.8, 0.5), stan_verbose = T, show_plot = T, nskip = 1000, npost = 1000, nchain = 4, HPD_interval = F){
+auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, subset = NULL, family = gaussian(), method = c("sample_mean", "rake", "postStratify", "MRP", "GAMP", "linear"), weights = NULL, levels = c(0.95, 0.8, 0.5), stan_verbose = TRUE, show_plot = TRUE, nskip = 1000, npost = 1000, nchain = 4, HPD_interval = FALSE){
   svyVar = stringr::str_trim(str_split_1(as.character(formula), "~"))
   svyVar = svyVar[svyVar != ""][1]
   if(!is.null(auxiliary)){
