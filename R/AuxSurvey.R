@@ -67,13 +67,13 @@ simulate = function(N = 3000, discretize =c(3, 5, 10), setting = c(1,2,3), seed 
   colnames(population) = c("id", "Z1", "Z2", "Z3", "X", "W", colnames(auX), colnames(auW), "Y1", "Y2", "true_pi", "logit_true_pi", "inclusion")
   colnames(samples) = c("id", "Z1", "Z2", "Z3", "X", "W", colnames(auX), colnames(auW), "Y1", "Y2", "true_pi", "logit_true_pi", "inclusion")
 
-  ps_model = BART3::gbart(as.matrix(population[, c("Z1", "Z2", "Z3", "X")]), population$inclusion, type = "pbart", ntree=50, keepevery= 1, ndpost = 100)
+  ps_model = BART::pbart(as.matrix(population[, c("Z1", "Z2", "Z3", "X")]), population$inclusion, type = "pbart", ntree=50, keepevery= 1, ndpost = 100)
   population$estimated_pi = predict(ps_model, as.matrix(population[, c("Z1", "Z2", "Z3", "X")]))$prob.test.mean
   samples$estimated_pi = predict(ps_model, as.matrix(samples[, c("Z1", "Z2", "Z3", "X")]))$prob.test.mean
   population$logit_estimated_pi = logit(population$estimated_pi)
   samples$logit_estimated_pi = logit(samples$estimated_pi)
 
-  ps_model_with_W <- BART3::gbart(as.matrix(population[, c("Z1", "Z2", "Z3", "X", "W")]), population$inclusion, type = "pbart", ntree=50, keepevery= 1, ndpost = 100)
+  ps_model_with_W <- BART::pbart(as.matrix(population[, c("Z1", "Z2", "Z3", "X", "W")]), population$inclusion, type = "pbart", ntree=50, keepevery= 1, ndpost = 100)
   population$estimated_pi_with_W = predict(ps_model_with_W, as.matrix(population[, c("Z1", "Z2", "Z3", "X", "W")]))$prob.test.mean
   samples$estimated_pi_with_W = predict(ps_model_with_W, as.matrix(samples[, c("Z1", "Z2", "Z3", "X", "W")]))$prob.test.mean
   population$logit_estimated_pi_with_W = logit(population$estimated_pi_with_W)
