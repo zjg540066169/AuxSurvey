@@ -77,6 +77,9 @@ population = data$population # get population, 3000 cases
 samples = data$samples # get samples, about 600 cases
 ipw = 1 / samples$true_pi # get the inverse probability weighting
 
+## True value
+true_mean = mean(population$Y1)
+
 ## IPW sample mean, with analysis on subset Z1 == 1 & Z2 == 1.
 IPW_sample_mean = auxsurvey("~Y1",  auxiliary = NULL, weights = ipw,
                    samples = samples, population = population,
