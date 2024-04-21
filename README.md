@@ -5,14 +5,16 @@ The following survey estimators with discretized auxiliary variables are provide
 * weighted or unweighted sample mean
 * weighted or unweighted raking
 * weighted or unweighted poststratification
-* MRP (Multilevel regression with poststratification)
-* GAMP (Generalized additive model of response propensity)
+* MRP (Bayesian Multilevel regression with poststratification)
+* GAMP (Bayesian Generalized additive model of response propensity)
 * Bayesian linear regression
 
-For more details on these estimators and its applications, please consult the following paper: "Improving survey inference using administrative records without releasing individual-level continuous data".
+For more details on these estimators and their applications, please consult the following paper: "Improving survey inference using administrative records without releasing individual-level continuous data".
 
 ## Installation
-Right now, the package is not uploaded to R cran yet, so please install this package from Github:
+This package is based on `rstan` and `rstanarm`, please make sure these two packages can be installed.
+
+Right now, the package has not been uploaded to Rcran yet, so please install this package from Github:
 ```
 require("devtools")
 install_github("https://github.com/zjg540066169/AuxSurvey")
