@@ -20,75 +20,29 @@ require("devtools")
 install_github("https://github.com/zjg540066169/AuxSurvey")
 ```
 
-
-## Models
-This package is based on the linear regression model: <img src="https://latex.codecogs.com/gif.latex?Y=\alpha+X\beta+\epsilon" /> 
-
-Different models impose different group-based prior distributions on <img src="https://latex.codecogs.com/gif.latex?\beta" />. 
-
-<table>
-   <tr>
-      <th align="center">Type</th>
-      <th align="center">Group-based Prior</th>
-     <th align="center">Hyper-parameters</th>
-      <th align="center">Default value</th>
-   </tr>
-   <tr>
-      <td style="text-align:center" align="center" rowspan="4" colspan="1">Shrinkage Model</td>
-      <td style="text-align:center" align="center" colspan="1" rowspan="2">Multi-Laplace</td>
-      <td style="text-align:center" align="center" colspan="1">r</td>
-      <td style="text-align:center" align="center" colspan="1">2</td>
-   </tr>
-   <tr>
-    <td style="text-align:center" align="center" colspan="1">s</td>
-      <td style="text-align:center"  align="center" colspan="1">15</td>
-   </tr>
-   <tr>
-      <td style="text-align:center" align="center" colspan="1" rowspan="1">ARD(Ridge)</td>
-      <td style="text-align:center" align="center" colspan="2">No hyper-parameters</td>
-   </tr>
-   <tr>
-    <td style="text-align:center" align="center" colspan="1">Horseshoe</td>
-      <td style="text-align:center" align="center" colspan="2">No hyper-parameters</td>
-   </tr>
-   <tr>
-      <td style="text-align:center" align="center" colspan="1" rowspan="5">Discrete Mixture Model</td>
-      <td style="text-align:center" align="center" rowspan="2">Spike-Ridge</td>
-      <td style="text-align:center" align="center" rowspan="1">p0</td>
-      <td style="text-align:center" align="center" rowspan="1">0.5</td>
-   <tr>
-     <td style="text-align:center" align="center" colspan="1">v0</td>
-      <td style="text-align:center" align="center" colspan="1">4</td>
-   </tr>
-   <tr>
-      <td style="text-align:center" align="center" colspan="1" rowspan="3">Spike-Laplace</td>
-      <td style="text-align:center" align="center" colspan="1">lambda</td>
-      <td style="text-align:center" align="center" colspan="1">6/11</td>
-   </tr>
-   <tr>
-      <td style="text-align:center" align="center" colspan="1">a</td>
-      <td style="text-align:center" align="center" colspan="1">1</td>
-   </tr>
-      <tr>
-      <td style="text-align:center" align="center" colspan="1">b</td>
-         <td style="text-align:center" align="center" colspan="1">1</td>
-   </tr>
-</tr>
-</table>
-
-The inference is done with posterior samples by running MCMC. 
-
 ## Usage
-Examples about how to use this library are included in `bmiselect/main.py`.
+There are two functions in this package. `simulate` generates datasets used in the paper. `auxsurvey` is the main function to calculate estimators.
 
-### Input
-After installation from pip, we can import Bayesian MI-LASSO classes in Python shell:
+### Generate simulated data
+As described in paper, we generate a population dataset with 3000 samples. We then sample about 600 cases from the population dataset. These two datasets have two outcomes: continuous outcome `Y1` and binary outcome `Y2`. Covariates consist of:
+* Z1 (binary): from Bernoulli(0.7).
+* Z2 (binary): from Bernoulli(0.5).
+* Z3 (binary): from Bernoulli(0.4).
+* X (continuous): from N(0, 1).
+* auX_3 (binary): discretized X with 3 categories, with equally spaced quantiles.
+* auX_5 (binary): discretized X with 5 categories, with equally spaced quantiles.
+* auX_10 (binary): discretized X with 10 categories, with equally spaced quantiles.
+* true_pi (continuous, value in [0, 1]): the true propensity scores to generate samples.
+* logit_true_pi (continuous): the logit transformation of true propensity scores.
+* estimated_pi (continuous, value in [0, 1]): the estimated propensity scores. We use Bayesian additive regression trees (BART) to estimate, with 50 trees, 100 iterations for both burn-in phase and posterior sampling phase. The posterior mean is used as the estimated propensity scores.
+* logit_estimated_pi (continuous): the logit transformation of estimated propensity scores.
+
 ```
-from bmiselect.models.ARD import ARD
-from bmiselect.models.Horseshoe import Horseshoe
-from bmiselect.models.Spike_ridge import Spike_ridge
-from bmiselect.models.Laplace import Laplace
-from bmiselect.models.Spike_laplace import Spike_laplace
+data = simulate(N = 3000, discretize = c(3, 5, 10), setting = 1, seed = 123) # setting parameter takes values in {1,2,3}, which corresponds the three simulation scenarios in paper.
+population = data$population # get population, 3000 cases
+samples = data$samples # get samples, about 600 cases
+ipw = 1 / samples$true_pi # get the true inverse probability weighting in sample
+est_ipw = 1 / samples$estimated_pi # get the estimated inverse probability weighting in sample
 ```
 
 ### Initialization
