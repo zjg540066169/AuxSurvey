@@ -1,5 +1,5 @@
 # AuxSurvey
-Probability surveys often use auxiliary continuous data from administrative records, but the utility of this data is diminished when it is discretized for confidentiality. This \bm{R} package provides a user-friendly function for different survey estimators with the discretized auxiliary variables.
+Probability surveys often use auxiliary continuous data from administrative records, but the utility of this data is diminished when it is discretized for confidentiality. This R package provides a user-friendly function for different survey estimators with the discretized auxiliary variables.
 
 The following survey estimators with discretized auxiliary variables:
 * weighted or unweighted sample mean
