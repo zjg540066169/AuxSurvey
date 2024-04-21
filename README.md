@@ -1,7 +1,7 @@
 # AuxSurvey
 Probability surveys often use auxiliary continuous data from administrative records, but the utility of this data is diminished when it is discretized for confidentiality. This R package provides a user-friendly function for different survey estimators with the discretized auxiliary variables.
 
-The following survey estimators with discretized auxiliary variables:
+The following survey estimators with discretized auxiliary variables are provided in the package:
 * weighted or unweighted sample mean
 * weighted or unweighted raking
 * weighted or unweighted poststratification
