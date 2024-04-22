@@ -432,7 +432,7 @@ svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NU
 #'The estimators includes (weighted) sample mean, (weighted) raking, (weighted) post-stratification, and three Bayesian methods: MRP, GAMP(Generalized additive model of response propensity) and (weighted) linear regression. The three Bayesian models are based on 'rstan' and 'rstanarm'.
 #'
 #' @param formula A string or formula for the specified formula for the outcome model. For non-model based methods(sample mean, raking, post-stratification), just include the outcome variable, such as "~Y". For model based methods (MRP, GAMP, LR), additional predictors can be specified as fixed effects term, such as "Y~X1+X2 + I(X^2)". For GAMP, smooth functions can be specified, such as "Y~X1 + s(X2, 10) + s(X3, by = X1)". Categorical variables are coded as dummy variables in model based methods.
-#' @param auxiliary A string for the specified formula for the auxiliary variables. For sample mean, just leave it as NULL. For raking, post-stratification, MRP, use string for an additive model, such as "Z1 + Z2 + Z3". MRP specifies random effects for terms in this parameter, such as "Z1 + Z2 + Z3" or "Z1 + Z2:Z3".
+#' @param auxiliary A string for the specified formula for the auxiliary variables. For sample mean, just leave it as NULL. For raking, post-stratification, GAMP, use string for an additive model, such as "Z1 + Z2 + Z3". MRP specifies random effects for terms in this parameter, such as "Z1 + Z2 + Z3" or "Z1 + Z2:Z3".
 #' @param samples A dataframe or tibble contains all variables in 'formula' and 'auxiliary'. This dataframe is a subset of 'population'.
 #' @param population A dataframe or tibble contains all variables in 'formula' and 'auxiliary'.
 #' @param subset A character vector. Each element is a string representing a filtering condition to select subset of samples and population. Default is NULL. When this parameter is NULL, the analysis is only performed on the whole data. If subsets are specified, the estimates for the whole data will also be calculated.
@@ -442,9 +442,9 @@ svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NU
 #' @param levels A numeric vector of values. Each specifies a confidence level of CI for estimators. If more than one values are specified, then multiple CIs are calculated.
 #' @param stan_verbose A logical scalar; if true, print all messages when running stan models. Default is false. This parameter only works for Bayesian models.
 #' @param show_plot A logical scalar; if true, show some diagnostic plots for stan models. Default is false. This parameter only works for Bayesian models.
-#' @param nskip A integer to specify the number of burn-in iterations of each chain in MCMC for stan models. Default is 1000. This parameter only works for Bayesian models.
-#' @param npost A integer to specify the number of posterior sampling iteration of each chain in MCMC for stan models. Default is 1000. This parameter only works for Bayesian models.
-#' @param nchain A integer to specify the number of MCMC chains for stan models. Default is 4. This parameter only works for Bayesian models.
+#' @param nskip An integer to specify the number of burn-in iterations of each chain in MCMC for stan models. Default is 1000. This parameter only works for Bayesian models.
+#' @param npost An integer to specify the number of posterior sampling iteration of each chain in MCMC for stan models. Default is 1000. This parameter only works for Bayesian models.
+#' @param nchain An integer to specify the number of MCMC chains for stan models. Default is 4. This parameter only works for Bayesian models.
 #' @param HPD_interval A logical scalar; if true, the calculated credible intervals for stan models are highest posterior density intervals. Otherwise the intervals are symmetric. Default is false. This parameter only works for Bayesian models.
 #'
 #' @import stats
@@ -598,14 +598,16 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
     samples = mutate_at(samples, all.vars(as.formula(auxiliary)), as.numeric)
     population = mutate_at(population, intersect(all.vars(as.formula(auxiliary)), colnames(population)), as.numeric)
 
-
-    auxiliary_fixed = setdiff(stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T), all.vars(as.formula(auxiliary)))
+    auxiliary = stringr::str_replace_all(auxiliary, "\\*", ":")
+    auxiliary_fixed = setdiff(stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T), all.vars(as.formula(auxiliary)))[stringr::str_detect(stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T), "s\\(.*\\)")]
 
 
     outcome_formula = paste(formula, paste(auxiliary_fixed, collapse = "+"), sep = "+")
-    auxiliary_random = intersect(stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T), all.vars(as.formula(auxiliary)))
-    samples = mutate_at(samples, auxiliary_random, as.factor)
-    population = mutate_at(population, auxiliary_random, as.factor)
+    auxiliary_random =  union(intersect(stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T), all.vars(as.formula(auxiliary))), stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T)[is.na(stringr::str_match(stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T), "s\\(.*\\)"))])
+
+
+    samples = mutate_at(samples, all.vars(as.formula(paste0("~", auxiliary_random))), as.factor)
+    population = mutate_at(population, all.vars(as.formula(paste0("~", auxiliary_random))), as.factor)
     if(length(auxiliary_random) != 0){
       outcome_formula = c(outcome_formula, paste0("~", paste0("(1|", auxiliary_random, ")", collapse = "+")))
       cat("The formula for the GAMP model is ", paste0(outcome_formula[1], str_replace(outcome_formula[2], "~", "+"), collapse = ""), "\n")
