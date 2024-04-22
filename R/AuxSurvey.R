@@ -520,7 +520,9 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
       stop(paste0("unidentified variables: ", paste0(setdiff(union(all.vars(as.formula(auxiliary)), all.vars(as.formula(formula))), colnames(population)), collapse = ", "), collapse = ", "))
     }
   }
-
+  if(length(setdiff(union(all.vars(as.formula(auxiliary)), all.vars(as.formula(formula))), colnames(samples))) > 0){
+    stop(paste0("unidentified variables: ", paste0(setdiff(union(all.vars(as.formula(auxiliary)), all.vars(as.formula(formula))), colnames(samples)), collapse = ", "), collapse = ", "))
+  }
 
   #auxiliary = str_trim(str_split(auxiliary, "\\+", simplify = T))
   #auxiliary = str_remove_all()
