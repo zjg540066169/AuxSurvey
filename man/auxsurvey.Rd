@@ -25,7 +25,7 @@ auxsurvey(
 \arguments{
 \item{formula}{A string or formula for the specified formula for the outcome model. For non-model based methods(sample mean, raking, post-stratification), just include the outcome variable, such as "~Y". For model based methods (MRP, GAMP, LR), additional predictors can be specified as fixed effects term, such as "Y~X1+X2 + I(X^2)". For GAMP, smooth functions can be specified, such as "Y~X1 + s(X2, 10) + s(X3, by = X1)". Categorical variables are coded as dummy variables in model based methods.}
 
-\item{auxiliary}{A string for the specified formula for the auxiliary variables. For sample mean, just leave it as NULL. For raking, post-stratification, MRP, use string for an additive model, such as "Z1 + Z2 + Z3". MRP specifies random effects for terms in this parameter, such as "Z1 + Z2 + Z3" or "Z1 + Z2:Z3".}
+\item{auxiliary}{A string for the specified formula for the auxiliary variables. For sample mean, just leave it as NULL. For raking, post-stratification, GAMP, use string for an additive model, such as "Z1 + Z2 + Z3". MRP specifies random effects for terms in this parameter, such as "Z1 + Z2 + Z3" or "Z1 + Z2:Z3".}
 
 \item{samples}{A dataframe or tibble contains all variables in 'formula' and 'auxiliary'. This dataframe is a subset of 'population'.}
 
@@ -45,11 +45,11 @@ auxsurvey(
 
 \item{show_plot}{A logical scalar; if true, show some diagnostic plots for stan models. Default is false. This parameter only works for Bayesian models.}
 
-\item{nskip}{A integer to specify the number of burn-in iterations of each chain in MCMC for stan models. Default is 1000. This parameter only works for Bayesian models.}
+\item{nskip}{An integer to specify the number of burn-in iterations of each chain in MCMC for stan models. Default is 1000. This parameter only works for Bayesian models.}
 
-\item{npost}{A integer to specify the number of posterior sampling iteration of each chain in MCMC for stan models. Default is 1000. This parameter only works for Bayesian models.}
+\item{npost}{An integer to specify the number of posterior sampling iteration of each chain in MCMC for stan models. Default is 1000. This parameter only works for Bayesian models.}
 
-\item{nchain}{A integer to specify the number of MCMC chains for stan models. Default is 4. This parameter only works for Bayesian models.}
+\item{nchain}{An integer to specify the number of MCMC chains for stan models. Default is 4. This parameter only works for Bayesian models.}
 
 \item{HPD_interval}{A logical scalar; if true, the calculated credible intervals for stan models are highest posterior density intervals. Otherwise the intervals are symmetric. Default is false. This parameter only works for Bayesian models.}
 }
@@ -64,7 +64,7 @@ This function provides a user-friendly interface for different estimators with t
 The estimators includes (weighted) sample mean, (weighted) raking, (weighted) post-stratification, and three Bayesian methods: MRP, GAMP(Generalized additive model of response propensity) and (weighted) linear regression. The three Bayesian models are based on 'rstan' and 'rstanarm'.
 }
 \examples{
-
+\dontrun{
 ## simulate data from the 'simulate' function, with nonlinear association setting 3.
 ## The continuous variable X is discretized into categorical variable auX_3 with 3 categories,
 ## and auX_10 with 10 categories.
@@ -106,5 +106,5 @@ MRP = auxsurvey("Y1~1 + Z1",  auxiliary = "Z2 + Z3:auX_10", samples = samples,
 GAMP = auxsurvey("Y1~1 + Z1 + Z2 + Z3",  auxiliary = "s(auX_10) + s(logit_true_pi, by = Z1)",
           samples = samples, population = population, subset = NULL, method = "GAMP",
          levels = 0.95, nskip = 4000, npost = 4000, nchain = 1, stan_verbose = F, HPD_interval = T)
-
+}
 }
