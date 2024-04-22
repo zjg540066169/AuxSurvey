@@ -81,82 +81,101 @@ IPW_sample_mean = auxsurvey("~Y1",  auxiliary = NULL, weights = ipw, samples = s
 
 # Estimated IPW sample mean of binary outcome
 # subset: the whole data and subsets of Z1 == 1 and Z1 == 1 & Z2 == 1.
-IPW_sample_mean = auxsurvey("~Y2",  auxiliary = NULL, weights = ipw, samples = samples, population = population, subset = c("Z1 == 1", "Z1 == 1 & Z2 == 1"), family = binomial(), method = "sample_mean", levels = 0.95)
+Est_IPW_sample_mean = auxsurvey("~Y2",  auxiliary = NULL, weights = est_ipw, samples = samples, population = population, subset = c("Z1 == 1", "Z1 == 1 & Z2 == 1"), family = binomial(), method = "sample_mean", levels = 0.95)
 ```
 
-### Posterior Sampling
-After initialization, we can use `sample` function to run MCMC chains and get posterior samples:
+#### Examples: Raking
 ```
-model1.sample(n_post = 1000, n_burn = 500, target_accept = 0.9, n_chain = 2, n_thread = 4, max_treedepth = 10, seed = 123)
-# model2.sample(n_post = 1000, n_burn = 500, target_accept = 0.9, n_chain = 2, n_thread = 4, max_treedepth = 10, seed = 123)
+# Unweighted Raking for auX_5, with interaction with Z1
+# subset: the whole data and subset of Z1 == 1 & Z2 == 1 & Z3 == 0.
+rake_5_Z1 = auxsurvey("~Y1",  auxiliary = "Z2 + Z3 + auX_5 * Z1", weights = NULL, samples = samples, population = population, subset = "Z1 == 1 & Z2 == 1 & Z3 == 0", method = "rake", levels = 0.95)
+
+# IPW Raking for auX_10
+# subset: the whole data and subsets of Z1 == 1 and Z1 == 1 & Z2 == 1.
+# CIs: 0.95, 0.8
+rake_10 = auxsurvey("~Y1",  auxiliary = "Z1 + Z2 + Z3 + auX_10", weights = ipw, samples = samples, population = population, subset = c("Z1 == 1", "Z1 == 1 & Z2 == 1"), method = "rake", levels = c(0.95, 0.8))
+
+# Estimated IPW Raking for auX_3, binary outcome
+# subset: the whole data.
+rake_3 = auxsurvey("~Y2",  auxiliary = "Z1 + Z2 + Z3 + auX_3", weights = est_ipw, samples = samples, population = population, subset = NULL, family = binomial(), method = "rake", levels = 0.95)
 ```
-The parameters for `sample` function are as follows:
-* n_post(required): number of posterior samples for each chain.
-* n_burn(required): number of burn-in samples for each chain.
-* target_accept(default 0.9): target acceptance probability for NUTS.
-* max_treedepth(default 10): maximum tree depth for NUTS.
-* n_chain(default 1): number of parallel chains to run.
-* n_thread(default 4): number of threads to run parallel computing.
-* seed(default None): random seed. If seed is None, seed is equals to the current time in seconds since the Epoch.
 
-We can use `get_posterior_samples` function to get posterior samples:
+#### Examples: Poststratification
+Since auX_5 and auX_10 will lead to 40 and 80 stratas, which are too many. We only applied to auX_3.
 ```
-model1.get_posterior_samples(var_name = "beta", rescale = True)   # get posterior samples for the coefficients vector
-model2.get_posterior_samples(var_name = "alpha", rescale = True)  # get posterior samples for the intercept
-model2.get_posterior_samples(var_name = "g", rescale = True)      # get posterior samples for the hidden binary variables in discrete mixture models
+# Unweighted Poststratification for auX_3
+# subset: the whole data and subset of Z1 == 1 & Z2 == 1 & Z3 == 0.
+ps_3 = auxsurvey("~Y1",  auxiliary = "Z1 + Z2 + Z3 + auX_3", weights = NULL, samples = samples, population = population, subset = "Z1 == 1 & Z2 == 1 & Z3 == 0", method = "postStratify", levels = 0.95)
+
+# IPW Poststratification for auX_3, binary outcome
+# subset: the whole data and subsets of Z1 == 1 and Z1 == 1 & Z2 == 1.
+# CIs: 0.95, 0.8
+ps_3_binary = auxsurvey("~Y2",  auxiliary = "Z1 + Z2 + Z3 + auX_3", weights = ipw, samples = samples, population = population, subset = c("Z1 == 1", "Z1 == 1 & Z2 == 1"), family = binomial(), method = "postStratify", levels = c(0.95, 0.8))
 ```
-Here `var_name` is the variable we want to sample for. `rescale` specifies whether to return coefficients in the original scale; if it is False, then coefficients corresponding to standardized covariates are return; if it is True, all the coefficients are rescaled to the original scale. If `standardize = False` in initialization stage, `rescale` has no effect. For MI data, we simply mixed up the posterior samples for each grouped coefficient among all MI sets. So the dimension of posterior samples for coefficients vector `beta` is `(n_chains, n_imputations * n_samples, n_features)`. And the dimension of intercept `alpha` is `(n_chains, n_imputations * n_samples)`.
 
-### Summary Statistics
-Our library provides a `summary` function to generate summary statistics for all the variables in the hierachical model:
+#### Examples: MRP
+MRP treats `formula` as the fixed effects part, and treats `auxiliary` as the random effects part. `weights` is not used for MRP. MRP allows the nested models.
 ```
-summary_stats1 = model1.summary(rescale = True)
-print(summary_stats1)
+# MRP with auX_3
+# subset: the whole data and subset of Z1 == 1 & Z2 == 1 & Z3 == 0.
+# The model is Y1 ~ 1 + Z1 + Z2 + (1|Z3) + (1|auX_3)
+MRP_1 = auxsurvey("Y1~1 + Z1 + Z2",  auxiliary = "Z3 + auX_3", samples = samples, population = population, subset = "Z1 == 1 & Z2 == 1 & Z3 == 0", method = "MRP", levels = 0.95)
+
+# MRP with auX_10, nested within Z1
+# subset: the whole data.
+# The model is Y1 ~ 1 + Z1 + Z2 + Z3 + (1|Z1:auX_3)
+MRP_2 = auxsurvey("Y1~1 + Z1 + Z2 + Z3",  auxiliary = "Z1:auX_3", samples = samples, population = population, subset = NULL, method = "MRP", levels = 0.95)
+
+# MRP with auX_10, nested within Z1. Z3 will be used in both fixed and random parts. Outcome is binary.
+# subset: the whole data.
+# CI are HPD_interval
+# The model is Y2 ~ 1 + Z1 + Z2 + Z3 + (1|auX_3) + (1|Z3).
+MRP_3 = auxsurvey("Y2~1 + Z1 + Z2 + Z3",  auxiliary = "Z3 + auX_3", samples = samples, population = population, subset = NULL, family = binomial(), method = "MRP", levels = 0.95, HPD_interval = T)
 ```
-Here `rescale` is the same as it in function `get_posterior_samples`.
-
-
-### Variable Selection
-Users can use `select` function to select important variables:
+#### Examples: GAMP
+GAMP specifies smooth functions for discretized variables and other variables. Smooth functions can be used in both `formula` and `auxiliary` parameters. If variables are specified in `auxiliary` without smooth function, random effects will be used.
 ```
-select1 = model1.select(value = 0.95, rescale = True) # Credible Interval Criterion for Shrinkage Models
-select2 = model2.select(value = 0.5,  rescale = True) # Cutting-off point for Discrete Mixture Models
+# GAMP with smooth functions on auX_3 and logit_estimated_pi
+# subset: the whole data and subset of Z1 == 1 & Z2 == 1 & Z3 == 0.
+# The model is Y1 ~ 1 + Z1 + Z2 + Z3 + s(logit_estimated_pi) + s(auX_3)
+GAMP_1 = auxsurvey("Y1~1 + Z1 + Z2 + Z3",  auxiliary = "s(logit_estimated_pi) + s(auX_3)", samples = samples, population = population, subset = "Z1 == 1 & Z2 == 1 & Z3 == 0", method = "GAMP", levels = 0.95)
+# This is equivalent to
+# GAMP_1 = auxsurvey("Y1~1 + Z1 + Z2 + Z3 + s(logit_estimated_pi)",  auxiliary = "s(auX_3)", samples = samples, population = population, subset = "Z1 == 1 & Z2 == 1 & Z3 == 0", method = "GAMP", levels = 0.95)
+
+
+# GAMP with smooth functions on logit_estimated_pi and auX_10 with interaction on Z1
+# subset: the whole data.
+# The model is Y1 ~ 1 + Z1 + Z2 + Z3 + s(logit_estimated_pi, by = Z1) + s(auX_3, by = Z1)
+GAMP_2 = auxsurvey("Y1~1 + Z1 + Z2 + Z3",  auxiliary = "s(logit_estimated_pi, by = Z1) + s(auX_3, by = Z1)", samples = samples, population = population, subset = NULL, method = "GAMP", levels = 0.95)
+
+
+# GAMP with smooth functions on logit_estimated_pi and auX_10 with interaction on Z1, and Z3 as random effects
+# subset: the whole data.
+# CI are HPD_interval
+# The model is Y1 ~ 1 + Z1 + Z2 + s(logit_estimated_pi, by = Z1) + s(auX_3, by = Z1) + (1|Z3)
+GAMP_3 = auxsurvey("Y1~1 + Z1 + Z2",  auxiliary = "s(logit_estimated_pi, by = Z1) + s(auX_3, by = Z1) + Z3", samples = samples, population = population, subset = NULL, method = "GAMP", levels = 0.95, HPD_interval = T)
+
+# GAMP with smooth functions on logit_estimated_pi and auX_10 with interaction on Z1, and Z1:Z3 as random effects. We can specify the number of degrees of smooth function. Outcome is binary.
+# subset: the whole data.
+# The model is Y2 ~ 1 + Z1 + Z2 + s(logit_estimated_pi, by = Z1, k = 3) + s(auX_3, by = Z1, k = 5) + (1|Z1:Z3)
+GAMP_4 = auxsurvey("Y2~1 + Z1 + Z2",  auxiliary = "s(logit_estimated_pi, by = Z1, k = 3) + s(auX_3, by = Z1, k = 2) + Z1:Z3", samples = samples, population = population, subset = NULL, family = binomial(), method = "GAMP", levels = 0.95)
 ```
-The meaning of `value` depends on the type of models. For shrinkage models, `value` is the credible interval criterion for selection. For discrete mixture models, `value` stands for the cutting-off point for selection. For more details, please consult Chapter 3.2 in the paper: "Variable Selection for Multiply-imputed Data: A Bayesian Framework" (Arxiv: https://arxiv.org/abs/2211.00114).
 
-
-### Evaluation
-There are some evaluation functions in this library:
+#### Examples: Bayesian Linear Regression
+Bayesian linear regression treats all categorical variables as dummy variables. `auxiliary` will be directly added to `formula`.
 ```
-from bmiselect.utils.evaluation import sensitivity, specificity, f1_score, mse
+# Linear regression
+# subset: the whole data and subset of Z1 == 1 & Z2 == 1 & Z3 == 0.
+# CI are HPD_interval
+# The model is Y1 ~ 1 + Z1 + Z2 + Z3 + auX_3.
+LR_1 = auxsurvey("Y1~1 + Z1 + Z2 + Z3",  auxiliary = "auX_3", samples = samples, population = population, subset = "Z1 == 1 & Z2 == 1 & Z3 == 0", method = "linear", levels = 0.95,  HPD_interval = T)
 
-sensitivity(select = select1, truth = truth)                                           # sensitivity
-specificity(select = select2, truth = truth)                                           # specificity
-f1_score(select = select2, truth = truth)                                              # f1 score
-mse(beta, covariance, select = select1, X = X_array, Y = Y_array, intercept = True)    # mse, given coefficients and covariance matrix of ground truth
+# Linear regression with quadratic terms of auX_5
+# subset: the whole data.
+# The model is Y1 ~ 1 + Z1 + Z2 + Z3 + auX_5 + auX_5^2
+LR_2 = auxsurvey("Y1~1 + Z1 + Z2 + Z3",  auxiliary = "auX_5 + I(auX_5^2)", samples = samples, population = population, subset = NULL, method = "linear", levels = 0.95)
 ```
-Here `select` and `truth` are binary vectors with length `(n_features)`. `select[i] = True` means i-th variable is selected.
 
-
-### Refitting Linear Regression
-After we complete the variable selection by Bayesian MI-LASSO, users can apply `fit_lr` to fit ordinary linear regression separately on each imputed dataset. Alternatively, users can utilize `pooled_coefficients` and `pooled_covariance` to directly get pooled coefficients and covariance matrix with Rubin`s Rule.
-```
-from bmiselect.utils.evaluation import fit_lr, pooled_coefficients, pooled_covariance
-
-# refit linear regression by using selected variabels
-lr_models = fit_lr(select1, X_array, Y_array, intercept = True))
-for lr in lr_models:
-    print(lr.summary())
-
-# get pooled coefficients estimates by using Rubin`s rule
-lr_coef = pooled_coefficients(select2, X_array, Y_array, intercept = True))
-print(lr_coef)
-
-# get pooled covariance estimates by using Rubin`s rule
-lr_covariance = pooled_covariance(select2, X_array, Y_array, intercept = True))
-print(lr_covariance)
-```
-If `intercept = True`, then an intercept is added to each ordinary linear regression respecitively. If `intercept = False`, then no intercept is used in linear regression.
 
 
 ## Disclaimer
