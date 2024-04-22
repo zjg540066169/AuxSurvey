@@ -38,6 +38,7 @@ As described in paper, we generate a population dataset with 3000 samples. We th
 * logit_estimated_pi (continuous): the logit transformation of estimated propensity scores.
 
 ```
+library(AuxSurvey)
 data = simulate(N = 3000, discretize = c(3, 5, 10), setting = 1, seed = 123) # setting parameter takes values in {1,2,3}, which corresponds the three simulation scenarios in paper.
 population = data$population # get population, 3000 cases
 samples = data$samples # get samples, about 600 cases
@@ -45,8 +46,18 @@ ipw = 1 / samples$true_pi # get the true inverse probability weighting in sample
 est_ipw = 1 / samples$estimated_pi # get the estimated inverse probability weighting in sample
 ```
 
-### Initialization
-Then we can use MI dataset to initialize the models:
+### Estimation
+After we generate datasets, we can run `auxsurvey` to get estimates. Here are the explanations of parameters:
+```
+auxsurvey(formula, auxiliary = NULL, samples, population = NULL, subset = NULL, family = gaussian(), method = c("sample_mean", "rake", "postStratify", "MRP", "GAMP", "linear"), weights = NULL, levels = c(0.95, 0.8, 0.5), stan_verbose = TRUE, show_plot = TRUE, nskip = 1000, npost = 1000, nchain = 4, HPD_interval = FALSE)
+```
+* formula (required): A string or formula for the specified formula for the outcome model. For non-model based methods(sample mean, raking, poststratification), just include the outcome variable, such as "~Y1" or "~Y2". For model-based methods (MRP, GAMP, LR), additional predictors can be specified as fixed effects terms, such as "Y1~Z1+Z2+Z3+I(Z1*Z2)". For GAMP, smooth functions can be specified, such as "Y1~Z1+s(Z2, 10)+s(Z3, by=Z1)". Categorical variables are coded as dummy variables in model based methods.
+* auxiliary (default: NULL): A string for the specified formula for the auxiliary variables. For sample mean, just leave it as NULL. For raking, poststratification, GAMP, and linear regression, use string for an additive model, such as "Z1+Z2+Z3+auX_5". MRP specifies random effects for each variable (term) in this parameter, such as "Z1+Z2+Z3" or "Z1+Z2:Z3".
+* samples (required): A dataframe or tibble contains all variables in 'formula' and 'auxiliary'. This dataframe is a subset of 'population'.
+* population (default: NULL): A dataframe or tibble contains all variables in 'formula' and 'auxiliary'. For the sample mean estimator, it doesn`t need information from population, so this parameter is NULL in this case.
+* 
+
+
 ```
 # shrinkage models
 model1 = Laplace(Y_array, X_array, standardize = True, r = 2, s = 15)
