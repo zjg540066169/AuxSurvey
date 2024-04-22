@@ -44,6 +44,7 @@ population = data$population # get population, 3000 cases
 samples = data$samples # get samples, about 600 cases
 ipw = 1 / samples$true_pi # get the true inverse probability weighting in sample
 est_ipw = 1 / samples$estimated_pi # get the estimated inverse probability weighting in sample
+true_mean = mean(population$Y1) # true value of the estimator
 ```
 
 ### Estimation
@@ -67,18 +68,21 @@ auxsurvey(formula, auxiliary = NULL, samples, population = NULL, subset = NULL, 
 * nchain (default: 4): The number of MCMC chains for stan models.
 * HPD_interval (default: FALSE): indicate if the highest posterior density intervals are calculated for CI.
 
+Here are some examples:
+#### Examples: Sample mean
 ```
-# shrinkage models
-model1 = Laplace(Y_array, X_array, standardize = True, r = 2, s = 15)
-# model1 = Horseshoe(Y_array, X_array, standardize = True)
-# model1 = Ridge(Y_array, X_array, standardize = True)
+# Unweighted sample mean
+# subset: the whole data.
+sample_mean = auxsurvey("~Y1",  auxiliary = NULL, weights = NULL, samples = samples, population = population, subset = NULL, method = "sample_mean", levels = 0.95)
 
-# discrete mixture models
-model2 = Spike_laplace(Y_array, X_array, standardize = True, lambda_ = 6/11, a = 1, b = 1)
-# model2 = Spike_ridge(Y_array, X_array, standardize = True, p0 = 0.5, v0 = 4)
+# IPW sample mean
+# subset: the whole data and subset of Z1 == 1 & Z2 == 1.
+IPW_sample_mean = auxsurvey("~Y1",  auxiliary = NULL, weights = ipw, samples = samples, population = population, subset = c("Z1 == 1 & Z2 == 1"), method = "sample_mean", levels = 0.95)
+
+# Estimated IPW sample mean of binary outcome
+# subset: the whole data and subsets of Z1 == 1 and Z1 == 1 & Z2 == 1.
+IPW_sample_mean = auxsurvey("~Y2",  auxiliary = NULL, weights = ipw, samples = samples, population = population, subset = c("Z1 == 1", "Z1 == 1 & Z2 == 1"), family = binomial(), method = "sample_mean", levels = 0.95)
 ```
-Here `Y_array` is a 2-d data array for response variable, its dimension is `(n_imputations, n_samples)`. `X_array` is a 3-d data array for explanatory variables, its dimension is `(n_imputations, n_samples, n_features)`. If the parameter `standardize` is True, X_array will be standardized and then used to run MCMC chains. If it is False, the original X_array is used to calculate MCMC chains. Other parameters are hyper-parameters for each model.
-
 
 ### Posterior Sampling
 After initialization, we can use `sample` function to run MCMC chains and get posterior samples:
