@@ -56,17 +56,16 @@ auxsurvey(formula, auxiliary = NULL, samples, population = NULL, subset = NULL, 
 * samples (required): A dataframe or tibble contains all variables in 'formula' and 'auxiliary'. This dataframe is a subset of 'population'.
 * population (default: NULL): A dataframe or tibble contains all variables in 'formula' and 'auxiliary'. For the sample mean estimator, it doesn`t need information from population, so this parameter is NULL in this case.
 * subset (default: NULL): A character vector. Each element is a string representing a filtering condition to select subset of samples and population. When this parameter is NULL, the analysis is only performed on the whole data. If subsets are specified, the estimates for the whole data will also be calculated. Some examples are 'c("Z1 == 1", "Z1 == 1 & Z2 == 1")'.
-* family (default: `gaussian()`):	The distribution family of the outcome variable. Currently, we only support `gaussian()` and `binomial()`.
-* method (required): A string specifying which model to use. Must choose one of the following methods: "sample_mean", "rake", "postStratify", "MRP", "GAMP", "linear".
-* weights (default: NULL): A numeric vector of case weights. The length should be equal to the number of cases in `samples`.
-* levels (default: c(0.95, 0.8, 0.5)): A numeric vector of values. Each specifies a confidence level of CI for estimators. If more than one values are specified, then multiple CIs are calculated.
-* stan_verbose (default: TRUE): A logical scalar; if true, print all messages when running stan models. This parameter only works for Bayesian models.
-* show_plot	(default: TRUE): A logical scalar; if true, show some diagnostic plots for stan models. This parameter only works for Bayesian models.
-* nskip	(default: 1000): An integer to specify the number of burn-in iterations of each chain in MCMC for stan models. This parameter only works for Bayesian models.
-* npost	(default: 1000): An integer to specify the number of posterior sampling iterations of each chain in MCMC for stan models. This parameter only works for Bayesian models.
-* nchain (default: 4): An integer to specify the number of MCMC chains for stan models. This parameter only works for Bayesian models.
-* HPD_interval (default: FALSE): A logical scalar; if true, the calculated credible intervals for stan models are the highest posterior density intervals. Otherwise, the intervals are symmetric. This parameter only works for Bayesian models.
-
+* family (default: `gaussian()`): The distribution family of the outcome variable. Currently, we only support `gaussian()` and `binomial()`.
+* method (required): Must choose one of the following methods: "sample_mean", "rake", "postStratify", "MRP", "GAMP", "linear".
+* weights (default: NULL): Weights of each cases in `samples`.
+* levels (default: c(0.95, 0.8, 0.5)): levels of CI.
+* stan_verbose (default: TRUE): indicate if printing all messages when running stan models.
+* show_plot	(default: TRUE): indicate if showing some diagnostic plots for stan models.
+* nskip	(default: 1000): The number of burn-in iterations of each chain in MCMC for stan models.
+* npost	(default: 1000): The number of posterior sampling iterations of each chain in MCMC for stan models.
+* nchain (default: 4): The number of MCMC chains for stan models.
+* HPD_interval (default: FALSE): indicate if the highest posterior density intervals are calculated for CI.
 
 ```
 # shrinkage models
