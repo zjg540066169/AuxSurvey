@@ -21,7 +21,7 @@ install_github("https://github.com/zjg540066169/AuxSurvey")
 ```
 
 ## Usage
-There are two functions in this package. `simulate` generates datasets used in the paper. `auxsurvey` is the main function to calculate estimators.
+There are two functions in this package. `simulate` generates datasets used in the paper. `auxsurvey` is the main function to calculate estimators. The input datasets for `auxsurvey` are data.frame or tibble. Keep all the categorical variables as factors.
 
 ### Generate simulated data
 As described in paper, we generate a population dataset with 3000 samples. We then sample about 600 cases from the population dataset. These two datasets have two outcomes: continuous outcome `Y1` and binary outcome `Y2`. Covariates consist of:
