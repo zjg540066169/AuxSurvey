@@ -516,7 +516,7 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
     }
   }
   if(!is.null(population)){
-    if(length(setdiff(union(all.vars(as.formula(auxiliary)), all.vars(as.formula(formula))), colnames(population))) > 0){
+    if(length(setdiff(union(all.vars(as.formula(auxiliary)), all.vars(as.formula(formula))), union(svyVar, colnames(population)))) > 0){
       stop(paste0("unidentified variables: ", paste0(setdiff(union(all.vars(as.formula(auxiliary)), all.vars(as.formula(formula))), colnames(population)), collapse = ", "), collapse = ", "))
     }
   }
