@@ -70,18 +70,19 @@ auxsurvey(formula, auxiliary = NULL, samples, population = NULL, subset = NULL, 
 
 Here are some examples:
 #### Examples: Sample mean
+The parameter `population` will not be used, so just set it as NULL.
 ```
 # Unweighted sample mean
 # subset: the whole data.
-sample_mean = auxsurvey("~Y1",  auxiliary = NULL, weights = NULL, samples = samples, population = population, subset = NULL, method = "sample_mean", levels = 0.95)
+sample_mean = auxsurvey("~Y1",  auxiliary = NULL, weights = NULL, samples = samples, population = NULL, subset = NULL, method = "sample_mean", levels = 0.95)
 
 # IPW sample mean
 # subset: the whole data and subset of Z1 == 1 & Z2 == 1.
-IPW_sample_mean = auxsurvey("~Y1",  auxiliary = NULL, weights = ipw, samples = samples, population = population, subset = c("Z1 == 1 & Z2 == 1"), method = "sample_mean", levels = 0.95)
+IPW_sample_mean = auxsurvey("~Y1",  auxiliary = NULL, weights = ipw, samples = samples, population = NULL, subset = c("Z1 == 1 & Z2 == 1"), method = "sample_mean", levels = 0.95)
 
 # Estimated IPW sample mean of binary outcome
 # subset: the whole data and subsets of Z1 == 1 and Z1 == 1 & Z2 == 1.
-Est_IPW_sample_mean = auxsurvey("~Y2",  auxiliary = NULL, weights = est_ipw, samples = samples, population = population, subset = c("Z1 == 1", "Z1 == 1 & Z2 == 1"), family = binomial(), method = "sample_mean", levels = 0.95)
+Est_IPW_sample_mean = auxsurvey("~Y2",  auxiliary = NULL, weights = est_ipw, samples = samples, population = NULL, subset = c("Z1 == 1", "Z1 == 1 & Z2 == 1"), family = binomial(), method = "sample_mean", levels = 0.95)
 ```
 
 #### Examples: Raking
