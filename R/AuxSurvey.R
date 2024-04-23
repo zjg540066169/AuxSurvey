@@ -612,8 +612,8 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
 
     if(length(auxiliary_random) > 0){
       samples = mutate_at(samples, all.vars(as.formula(paste0("~", auxiliary_random))), as.factor)
+      population = mutate_at(population, all.vars(as.formula(paste0("~", auxiliary_random))), as.factor)
     }
-    population = mutate_at(population, all.vars(as.formula(paste0("~", auxiliary_random))), as.factor)
     if(length(auxiliary_random) != 0){
       outcome_formula = c(outcome_formula, paste0("~", paste0("(1|", auxiliary_random, ")", collapse = "+")))
       cat("The formula for the GAMP model is ", paste0(outcome_formula[1], str_replace(outcome_formula[2], "~", "+"), collapse = ""), "\n")
