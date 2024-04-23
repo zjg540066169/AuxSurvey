@@ -610,8 +610,9 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
     outcome_formula = paste(formula, paste(auxiliary_fixed, collapse = "+"), sep = "+")
     auxiliary_random =  union(intersect(stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T), all.vars(as.formula(auxiliary))), stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T)[is.na(stringr::str_match(stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T), "s\\(.*\\)"))])
 
-
-    samples = mutate_at(samples, all.vars(as.formula(paste0("~", auxiliary_random))), as.factor)
+    if(length(auxiliary_random) > 0){
+      samples = mutate_at(samples, all.vars(as.formula(paste0("~", auxiliary_random))), as.factor)
+    }
     population = mutate_at(population, all.vars(as.formula(paste0("~", auxiliary_random))), as.factor)
     if(length(auxiliary_random) != 0){
       outcome_formula = c(outcome_formula, paste0("~", paste0("(1|", auxiliary_random, ")", collapse = "+")))
