@@ -278,9 +278,10 @@ postStr_wt <- function(svysmpl, svypopu, auxVars, svyVar, subset = NULL, family 
                     parm = svyVar, simplify = F)
       tCI = do.call("cbind", tCI)
     }
-
+    print(s)
     # get estmates and standard error
     infr <- cbind(est = PSest[svyVar], se = sqrt(diag(vcov(PSest))), tCI, sample_size = survey::degf(PSobj) + 1, population_size = nrow(dplyr::filter(svypopu, eval(parse(text = s)))))
+    print(infr)
     if(is.null(weights))
       rownames(infr) = "postStratify"
     else{
@@ -362,6 +363,7 @@ svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NU
   }
   if(useTrueSample == F){
     infr = sapply(subset, function(s){
+      #print(s)
       svypopu1 = dplyr::filter(svypopu, eval(parse(text = s)))
       yhats <- posterior_epred(bayesmod, svypopu1)
 
@@ -384,8 +386,6 @@ svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NU
       infr <- rbind(c(post_mean_est = mean(post_est), post_median_est = median(post_est), se = sd(post_est), tCI, sample_size = nrow(dplyr::filter(svysmpl, eval(parse(text = s)))), population_size = nrow(svypopu1)))
     }, simplify = F)
     names(infr)[1] = "All"
-    if(length(infr) == 1)
-      return(infr[[1]])
     return(infr)
   }else{
     infr = sapply(subset, function(s){
@@ -577,6 +577,7 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
     }
     cat("The formula for the MRP model is ", outcome_formula, "\n")
     MRP_est = svyBayesmod(samples, population, outcome_formula, "stan_glmer", subset, family, levels, weights, nskip, npost, nchain, printmod = TRUE, doFigure = show_plot, useTrueSample = F, stan_verbose = stan_verbose, shortest_CI = HPD_interval)
+    #return(MRP_est)
     MRP_est =  lapply(MRP_est, function(est){
       if(is.null(weights))
         rownames(est) = "MRP"
@@ -625,7 +626,7 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
     #outcome_formula = paste(formula, paste0(str_remove_all(auxiliary, "~"), collapse = "+"), paste0("(1|", auxiliary_random, ")", collapse = "+"),  sep = "+")
 
     GAMP_est = svyBayesmod(samples, population, outcome_formula, "stan_gamm4", subset, family, levels, weights, nskip, npost, nchain, printmod = T, doFigure = F, useTrueSample = T, stan_verbose = stan_verbose, shortest_CI = HPD_interval)
-
+    #print(GAMP_est)
 
     GAMP_est =  lapply(GAMP_est, function(est){
       if(is.null(weights))
