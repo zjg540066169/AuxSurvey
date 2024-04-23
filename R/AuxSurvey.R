@@ -397,7 +397,7 @@ svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NU
 
       yhats_pop_tot <- yhats_pop %>% apply(1, sum) # npost * 1
       yhats_sam_tot <- yhats_sam %>% apply(1, sum) # npost * 1
-      yobs_tot <- sum(svysmpl1 %>% dplyr::select(str_split_1(outcome_formula[1], "~")[1])) # a single value
+      yobs_tot <- sum(svysmpl1 %>% dplyr::select(stringr::str_trim(stringr::str_split_1(outcome_formula[1], "~")[1]))) # a single value
       post_est = (yhats_pop_tot + yobs_tot - yhats_sam_tot) / nrow(svypopu1) #npost
       tCI = sapply(invlvls, function(level){
         #confint(post_est, level = 0.95)
