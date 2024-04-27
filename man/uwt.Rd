@@ -4,14 +4,26 @@
 \alias{uwt}
 \title{Weighted or Unweighted Sample Mean}
 \usage{
-uwt(svysmpl, svyVar, subset = NULL, invlvls, weights = NULL)
+uwt(
+  svysmpl,
+  svyVar,
+  svypopu = NULL,
+  subset = NULL,
+  family = gaussian(),
+  invlvls,
+  weights = NULL
+)
 }
 \arguments{
 \item{svysmpl}{A dataframe or tibble to represent 'samples'.}
 
 \item{svyVar}{Outcome variable.}
 
+\item{svypopu}{population.}
+
 \item{subset}{A character vector. Each element is a string representing a filtering condition to select subset of samples and population. Default is NULL. When this parameter is NULL, the analysis is only performed on the whole data. If subsets are specified, the estimates for the whole data will also be calculated.}
+
+\item{family}{The distribution family of outcome variable. Currently we only support \code{\link[stats]{gaussian}} and \code{\link[stats]{binomial}}.}
 
 \item{invlvls}{A numeric vector of values. Each specifies a confidence level of CI for estimators. If more than one values are specified, then multiple CIs are calculated.}
 

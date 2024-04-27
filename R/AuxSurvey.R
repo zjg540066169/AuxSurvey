@@ -90,7 +90,9 @@ simulate = function(N = 3000, discretize =c(3, 5, 10), setting = c(1,2,3), seed 
 #'
 #' @param svysmpl A dataframe or tibble to represent 'samples'.
 #' @param svyVar Outcome variable.
+#' @param svypopu population.
 #' @param subset A character vector. Each element is a string representing a filtering condition to select subset of samples and population. Default is NULL. When this parameter is NULL, the analysis is only performed on the whole data. If subsets are specified, the estimates for the whole data will also be calculated.
+#' @param family The distribution family of outcome variable. Currently we only support \code{\link[stats]{gaussian}} and \code{\link[stats]{binomial}}.
 #' @param invlvls A numeric vector of values. Each specifies a confidence level of CI for estimators. If more than one values are specified, then multiple CIs are calculated.
 #' @param weights A numeric vector of case weights. The length should be equal to the number of cases in 'samples'.
 #'
@@ -105,21 +107,49 @@ simulate = function(N = 3000, discretize =c(3, 5, 10), setting = c(1,2,3), seed 
 #' @import dplyr
 #' @import rlang
 #'
-uwt <- function(svysmpl, svyVar, subset = NULL, invlvls, weights = NULL) {
+uwt <- function(svysmpl, svyVar, svypopu = NULL, subset = NULL, family = gaussian(), invlvls, weights = NULL) {
   subset = c("T", subset)
+  if(is.null(svypopu)){
+    if(is.null(weights))
+      des <- survey::svydesign(ids = ~1, weights = ~1, data = svysmpl)
+    else{
+      des <- survey::svydesign(ids = ~1, weights = ~weights, data = svysmpl, fpc = ~fpc)
+    }
+  }else{
+    svysmpl$fpc <- nrow(svypopu)
+    if(is.null(weights))
+      des <- survey::svydesign(ids = ~1, weights = ~1, data = svysmpl, fpc = ~fpc)
+    else{
+      des <- survey::svydesign(ids = ~1, weights = ~weights, data = svysmpl, fpc = ~fpc)
+    }
+  }
   infr = sapply(subset, function(s){
-    index <- eval(rlang::parse_expr(s), envir = svysmpl)
-    a = svysmpl[index, ]
-    weights1 = weights[index]
-    obj <- paste(svyVar, 1, sep = '~') %>% as.formula() %>%
-      lm(data = a, weights = weights1)
-    invls <- sapply(invlvls, function(lvl){
-      inv <- confint(object = obj, level = lvl);
-      rownames(inv) <- lvl;
-      return(inv)
-    }, simplify = F)
-    invls <- do.call('cbind', invls)
-    infr <- cbind(est = obj$coefficients, se = sqrt(diag(vcov(obj))), invls, sample_size = length(obj$fitted.values))
+    des = subset(des, eval(parse(text = s)))
+
+    if(family$family == "binomial"){
+      suppressWarnings(desc <- sapply(invlvls, function(lv) paste0('~', svyVar) %>% as.formula() %>%
+                                        survey::svyciprop(des, method = "logit", level = lv), simplify = F))
+      tCI <- lapply(desc, function(i){
+        ci = confint(i, df = survey::degf(des), parm = svyVar)
+        colnames(ci) = stringr::str_replace(colnames(ci), "%", " %")
+        ci
+      })
+
+      tCI = do.call("cbind", tCI)
+      desc = desc[[1]]
+    }
+    if(family$family == "gaussian"){
+      desc <- paste0('~', svyVar) %>% as.formula() %>% survey::svymean(des)
+      tCI <- sapply(invlvls, confint, object = desc, parm = svyVar, simplify = F)
+      tCI = do.call("cbind", tCI)
+    }
+
+    # get estmates and standard error
+    if(!is.null(svypopu)){
+      infr <- cbind(est = desc[svyVar], se = sqrt(diag(vcov(desc))), tCI, sample_size = survey::degf(des) + 1, population_size =  nrow(dplyr::filter(svypopu, eval(parse(text = s)))))
+    }else{
+      infr <- cbind(est = desc[svyVar], se = sqrt(diag(vcov(desc))), tCI, sample_size = survey::degf(des) + 1)
+    }
     if(is.null(weights))
       rownames(infr) = "sample_mean"
     else{
@@ -175,7 +205,7 @@ rake_wt <- function(svysmpl, svypopu, auxVars, svyVar, subset = NULL, family = g
     paste('~', Var, sep = ' ') %>% as.formula() %>% return()
   } )
   rakingobj <- survey::rake(des, fmla_list, popu_tab,
-                    control = list(maxit = maxiter, epsilon = 1, verbose = FALSE))
+                            control = list(maxit = maxiter, epsilon = 1, verbose = FALSE))
   infr = sapply(subset, function(s){
     rakingobj = subset(rakingobj, eval(parse(text = s)))
     if(family$family == "binomial"){
@@ -533,7 +563,7 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
   #   weights = 1 / propensity_score
   # }
   if(method == "sample_mean"){
-    return(uwt(samples, svyVar, subset, levels, weights))
+    return(uwt(samples, svyVar, population, subset, family, levels, weights))
   }
   if(method == "rake"){
     covariates = stringr::str_trim(stringr::str_split(stringr::str_split_i(as.character(formula), "~", 2), "\\+", simplify = T))
@@ -562,7 +592,7 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
     covariates = stringr::str_trim(stringr::str_split(stringr::str_split_i(as.character(formula), "~", 2), "\\+", simplify = T))
     covariates = setdiff(covariates, svyVar)
     if("." %in% covariates){
-     covariates = setdiff(names(samples), svyVar)
+      covariates = setdiff(names(samples), svyVar)
     }
     samples = mutate_at(samples, all.vars(as.formula(auxiliary)), as.factor)
     population = mutate_at(population, all.vars(as.formula(auxiliary)), as.factor)
