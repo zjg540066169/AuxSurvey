@@ -113,7 +113,7 @@ uwt <- function(svysmpl, svyVar, svypopu = NULL, subset = NULL, family = gaussia
     if(is.null(weights))
       des <- survey::svydesign(ids = ~1, weights = ~1, data = svysmpl)
     else{
-      des <- survey::svydesign(ids = ~1, weights = ~weights, data = svysmpl, fpc = ~fpc)
+      des <- survey::svydesign(ids = ~1, weights = ~weights, data = svysmpl)
     }
   }else{
     svysmpl$fpc <- nrow(svypopu)
