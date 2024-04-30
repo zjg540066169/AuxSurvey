@@ -591,8 +591,8 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
     if("." %in% covariates){
       covariates = setdiff(names(samples), svyVar)
     }
-    samples = mutate_at(samples, all.vars(as.formula(auxiliary)), as.factor)
-    population = mutate_at(population, all.vars(as.formula(auxiliary)), as.factor)
+    samples = dplyr::mutate_at(samples, all.vars(as.formula(auxiliary)), as.factor)
+    population = dplyr::mutate_at(population, all.vars(as.formula(auxiliary)), as.factor)
     auxiliary = stringr::str_replace_all(auxiliary, "\\*", ":")
     auxiliary = stringr::str_split_i(as.character(auxiliary), "~", 2)
     auxiliary = stringr::str_split(auxiliary, "\\+", simplify = T)
