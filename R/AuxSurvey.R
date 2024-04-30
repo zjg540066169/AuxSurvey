@@ -301,7 +301,7 @@ postStr_wt <- function(svysmpl, svypopu, auxVars, svyVar, subset = NULL, family 
                     parm = svyVar, simplify = F)
       tCI = do.call("cbind", tCI)
     }
-    print(s)
+    #print(s)
     # get estmates and standard error
     infr <- cbind(est = PSest[svyVar], se = sqrt(diag(vcov(PSest))), tCI, sample_size = survey::degf(PSobj) + 1, population_size = nrow(dplyr::filter(svypopu, eval(parse(text = s)))))
     print(infr)
