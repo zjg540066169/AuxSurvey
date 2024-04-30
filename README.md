@@ -8,6 +8,7 @@ The following survey estimators with discretized auxiliary variables are provide
 * MRP (Bayesian Multilevel regression with poststratification)
 * GAMP (Bayesian Generalized additive model of response propensity)
 * Bayesian linear regression
+* BART (Bayesian additive regression trees)
 
 For more details on these estimators and their applications, please consult the following paper: "Improving survey inference using administrative records without releasing individual-level continuous data".
 
@@ -18,6 +19,17 @@ Right now, the package has not been uploaded to Rcran yet, so please install thi
 ```
 require("devtools")
 install_github("https://github.com/zjg540066169/AuxSurvey")
+library(AuxSurvey)
+```
+
+When you run Bayesian models, there might be the following error message. 
+```
+Error in initializePtr() : function 'cholmod_factor_ldetA' not provided by package 'Matrix'
+```
+This is because the package 'Matrix' < 1.6-2 and 'Matrix' >= 1.6-2 are binary incompatible. Run the following code to solve:
+```
+install.packages("lme4", type = "source")
+library(AuxSurvey)
 ```
 
 ## Usage
@@ -50,15 +62,15 @@ true_mean = mean(population$Y1) # true value of the estimator
 ### Estimation
 After we generate datasets, we can run `auxsurvey` to get estimates. Here are the explanations of parameters:
 ```
-auxsurvey(formula, auxiliary = NULL, samples, population = NULL, subset = NULL, family = gaussian(), method = c("sample_mean", "rake", "postStratify", "MRP", "GAMP", "linear"), weights = NULL, levels = c(0.95, 0.8, 0.5), stan_verbose = TRUE, show_plot = TRUE, nskip = 1000, npost = 1000, nchain = 4, HPD_interval = FALSE)
+auxsurvey(formula, auxiliary = NULL, samples, population = NULL, subset = NULL, family = gaussian(), method = c("sample_mean", "rake", "postStratify", "MRP", "GAMP", "linear", "BART"), weights = NULL, levels = c(0.95, 0.8, 0.5), stan_verbose = TRUE, show_plot = TRUE, nskip = 1000, npost = 1000, nchain = 4, HPD_interval = FALSE)
 ```
 * formula (required): A string or formula for the specified formula for the outcome model. For non-model based methods(sample mean, raking, poststratification), just include the outcome variable, such as "\~Y1" or "\~Y2". For model-based methods (MRP, GAMP, LR), additional predictors can be specified as fixed effects terms, such as "Y1\~Z1+Z2+Z3+I(Z1*Z2)". For GAMP, smooth functions can be specified, such as "Y1\~Z1+s(Z2, 10)+s(Z3, by=Z1)". Categorical variables are coded as dummy variables in model based methods.
-* auxiliary (default: NULL): A string for the specified formula for the auxiliary variables. For sample mean, just leave it as NULL. For raking, poststratification, GAMP, and linear regression, use string for an additive model, such as "Z1+Z2+Z3+auX_5". MRP specifies random effects for each variable (term) in this parameter, such as "Z1+Z2+Z3" or "Z1+Z2:Z3".
+* auxiliary (default: NULL): A string for the specified formula for the auxiliary variables. For sample mean and BART, just leave it as NULL. For raking, poststratification, GAMP, and linear regression, use string for an additive model, such as "Z1+Z2+Z3+auX_5". MRP specifies random effects for each variable (term) in this parameter, such as "Z1+Z2+Z3" or "Z1+Z2:Z3".
 * samples (required): A dataframe or tibble contains all variables in 'formula' and 'auxiliary'. This dataframe is a subset of 'population'.
-* population (default: NULL): A dataframe or tibble contains all variables in 'formula' and 'auxiliary'. For the sample mean estimator, it doesn`t need information from population, so this parameter is NULL in this case.
+* population (default: NULL): A dataframe or tibble contains all variables in 'formula' and 'auxiliary'. For the sample mean estimator, it is NULL as default. If this parameter is specified for sample mean, the finite population correction will be calculate for CIs.
 * subset (default: NULL): A character vector. Each element is a string representing a filtering condition to select subset of samples and population. When this parameter is NULL, the analysis is only performed on the whole data. If subsets are specified, the estimates for the whole data will also be calculated. Some examples are 'c("Z1 == 1", "Z1 == 1 & Z2 == 1")'.
 * family (default: `gaussian()`): The distribution family of the outcome variable. Currently, we only support `gaussian()` and `binomial()`.
-* method (required): Must choose one of the following methods: "sample_mean", "rake", "postStratify", "MRP", "GAMP", "linear".
+* method (required): Must choose one of the following methods: "sample_mean", "rake", "postStratify", "MRP", "GAMP", "linear", "BART".
 * weights (default: NULL): Weights of each cases in `samples`.
 * levels (default: c(0.95, 0.8, 0.5)): levels of CI.
 * stan_verbose (default: TRUE): indicate if printing all messages when running stan models.
@@ -78,7 +90,8 @@ sample_mean = auxsurvey("~Y1",  auxiliary = NULL, weights = NULL, samples = samp
 
 # IPW sample mean
 # subset: the whole data and subset of Z1 == 1 & Z2 == 1.
-IPW_sample_mean = auxsurvey("~Y1",  auxiliary = NULL, weights = ipw, samples = samples, population = NULL, subset = c("Z1 == 1 & Z2 == 1"), method = "sample_mean", levels = 0.95)
+# CIs are calculated with finite population correction
+IPW_sample_mean = auxsurvey("~Y1",  auxiliary = NULL, weights = ipw, samples = samples, population = population, subset = c("Z1 == 1 & Z2 == 1"), method = "sample_mean", levels = 0.95)
 
 # Estimated IPW sample mean of binary outcome
 # subset: the whole data and subsets of Z1 == 1 and Z1 == 1 & Z2 == 1.
@@ -175,6 +188,15 @@ LR_1 = auxsurvey("Y1~1 + Z1 + Z2 + Z3",  auxiliary = "auX_3", samples = samples,
 # subset: the whole data.
 # The model is Y1 ~ 1 + Z1 + Z2 + Z3 + auX_5 + auX_5^2
 LR_2 = auxsurvey("Y1~1 + Z1 + Z2 + Z3",  auxiliary = "auX_5 + I(auX_5^2)", samples = samples, population = population, subset = NULL, method = "linear", levels = 0.95)
+```
+
+#### Examples: Bayesian additive regression trees
+For BART, specify the predictors in `formula` and leave `auxiliary` as NULL.
+```
+# BART
+# subset: the whole data and subset of Z1 == 1 & Z2 == 1 & Z3 == 0.
+# CI are HPD_interval
+LR_1 = auxsurvey("Y1~1 + Z1 + Z2 + Z3 + auX_3",  auxiliary = NULL, samples = samples, population = population, subset = "Z1 == 1 & Z2 == 1 & Z3 == 0", method = "BART", levels = 0.95,  HPD_interval = T)
 ```
 
 
