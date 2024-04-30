@@ -149,30 +149,30 @@ MRP_3 = auxsurvey("Y2~1 + Z1 + Z2 + Z3",  auxiliary = "Z3 + auX_3", samples = sa
 #### Examples: GAMP
 GAMP specifies smooth functions for discretized variables and other variables. Smooth functions can be used in both `formula` and `auxiliary` parameters. If variables are specified in `auxiliary` without smooth function, random effects will be used.
 ```
-# GAMP with smooth functions on auX_3 and logit_estimated_pi
+# GAMP with smooth functions on auX_10 and logit_estimated_pi
 # subset: the whole data and subset of Z1 == 1 & Z2 == 1 & Z3 == 0.
-# The model is Y1 ~ 1 + Z1 + Z2 + Z3 + s(logit_estimated_pi) + s(auX_3)
-GAMP_1 = auxsurvey("Y1~1 + Z1 + Z2 + Z3",  auxiliary = "s(logit_estimated_pi) + s(auX_3)", samples = samples, population = population, subset = "Z1 == 1 & Z2 == 1 & Z3 == 0", method = "GAMP", levels = 0.95)
+# The model is Y1 ~ 1 + Z1 + Z2 + Z3 + s(logit_estimated_pi) + s(auX_10)
+GAMP_1 = auxsurvey("Y1~1 + Z1 + Z2 + Z3",  auxiliary = "s(logit_estimated_pi) + s(auX_10)", samples = samples, population = population, subset = "Z1 == 1 & Z2 == 1 & Z3 == 0", method = "GAMP", levels = 0.95)
 # This is equivalent to
-# GAMP_1 = auxsurvey("Y1~1 + Z1 + Z2 + Z3 + s(logit_estimated_pi)",  auxiliary = "s(auX_3)", samples = samples, population = population, subset = "Z1 == 1 & Z2 == 1 & Z3 == 0", method = "GAMP", levels = 0.95)
+# GAMP_1 = auxsurvey("Y1~1 + Z1 + Z2 + Z3 + s(logit_estimated_pi)",  auxiliary = "s(auX_10)", samples = samples, population = population, subset = "Z1 == 1 & Z2 == 1 & Z3 == 0", method = "GAMP", levels = 0.95)
 
 
 # GAMP with smooth functions on logit_estimated_pi and auX_10 with interaction on Z1
 # subset: the whole data.
-# The model is Y1 ~ 1 + Z1 + Z2 + Z3 + s(logit_estimated_pi, by = Z1) + s(auX_3, by = Z1)
-GAMP_2 = auxsurvey("Y1~1 + Z1 + Z2 + Z3",  auxiliary = "s(logit_estimated_pi, by = Z1) + s(auX_3, by = Z1)", samples = samples, population = population, subset = NULL, method = "GAMP", levels = 0.95)
+# The model is Y1 ~ 1 + Z1 + Z2 + Z3 + s(logit_estimated_pi, by = Z1) + s(auX_10, by = Z1)
+GAMP_2 = auxsurvey("Y1~1 + Z1 + Z2 + Z3",  auxiliary = "s(logit_estimated_pi, by = Z1) + s(auX_10, by = Z1)", samples = samples, population = population, subset = NULL, method = "GAMP", levels = 0.95)
 
 
 # GAMP with smooth functions on logit_estimated_pi and auX_10 with interaction on Z1, and Z3 as random effects
 # subset: the whole data.
 # CI are HPD_interval
-# The model is Y1 ~ 1 + Z1 + Z2 + s(logit_estimated_pi, by = Z1) + s(auX_3, by = Z1) + (1|Z3)
-GAMP_3 = auxsurvey("Y1~1 + Z1 + Z2",  auxiliary = "s(logit_estimated_pi, by = Z1) + s(auX_3, by = Z1) + Z3", samples = samples, population = population, subset = NULL, method = "GAMP", levels = 0.95, HPD_interval = T)
+# The model is Y1 ~ 1 + Z1 + Z2 + s(logit_estimated_pi, by = Z1) + s(auX_10, by = Z1) + (1|Z3)
+GAMP_3 = auxsurvey("Y1~1 + Z1 + Z2",  auxiliary = "s(logit_estimated_pi, by = Z1) + s(auX_10, by = Z1) + Z3", samples = samples, population = population, subset = NULL, method = "GAMP", levels = 0.95, HPD_interval = T)
 
 # GAMP with smooth functions on logit_estimated_pi and auX_10 with interaction on Z1, and Z1:Z3 as random effects. We can specify the number of degrees of smooth function. Outcome is binary.
 # subset: the whole data.
-# The model is Y2 ~ 1 + Z1 + Z2 + s(logit_estimated_pi, by = Z1, k = 3) + s(auX_3, by = Z1, k = 5) + (1|Z1:Z3)
-GAMP_4 = auxsurvey("Y2~1 + Z1 + Z2",  auxiliary = "s(logit_estimated_pi, by = Z1, k = 3) + s(auX_3, by = Z1, k = 2) + Z1:Z3", samples = samples, population = population, subset = NULL, family = binomial(), method = "GAMP", levels = 0.95)
+# The model is Y2 ~ 1 + Z1 + Z2 + s(logit_estimated_pi, by = Z1, k = 3) + s(auX_10, by = Z1, k = 5) + (1|Z1:Z3)
+GAMP_4 = auxsurvey("Y2~1 + Z1 + Z2",  auxiliary = "s(logit_estimated_pi, by = Z1, k = 3) + s(auX_10, by = Z1, k = 2) + Z1:Z3", samples = samples, population = population, subset = NULL, family = binomial(), method = "GAMP", levels = 0.95)
 ```
 
 #### Examples: Bayesian Linear Regression
