@@ -26,9 +26,9 @@ simulate = function(N = 3000, discretize =c(3, 5, 10), setting = c(1,2,3), seed 
   })
   X = rnorm(N)
   W = rnorm(N)
-  auX = sapply(discretize, function(q) gtools::quantcut(X, q = q, labels = FALSE))
+  auX = sapply(discretize, function(q) quantcut(X, q = q, labels = FALSE))
   colnames(auX) = paste0("auX_", discretize)
-  auW = sapply(discretize, function(q) gtools::quantcut(W, q = q, labels = FALSE))
+  auW = sapply(discretize, function(q) quantcut(W, q = q, labels = FALSE))
   colnames(auW) = paste0("auW_", discretize)
 
   if(setting == 1){
