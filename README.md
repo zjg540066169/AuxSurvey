@@ -196,7 +196,7 @@ For BART, specify the predictors in `formula` and leave `auxiliary` as NULL.
 # BART
 # subset: the whole data and subset of Z1 == 1 & Z2 == 1 & Z3 == 0.
 # CI are HPD_interval
-LR_1 = auxsurvey("Y1~1 + Z1 + Z2 + Z3 + auX_3",  auxiliary = NULL, samples = samples, population = population, subset = "Z1 == 1 & Z2 == 1 & Z3 == 0", method = "BART", levels = 0.95,  HPD_interval = T)
+BART_1 = auxsurvey("Y1~1 + Z1 + Z2 + Z3 + auX_3",  auxiliary = NULL, samples = samples, population = population, subset = "Z1 == 1 & Z2 == 1 & Z3 == 0", method = "BART", levels = 0.95,  HPD_interval = T)
 ```
 
 
