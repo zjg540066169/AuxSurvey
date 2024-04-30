@@ -628,19 +628,19 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
     #}
 
     #samples_matrix = model.matrix(as.formula(paste(paste0("~", str_split_i(formula, "~", 2)), paste0(auxiliary, collapse = "+"), sep = "+")), data = samples)
-    samples = mutate_at(samples, all.vars(as.formula(auxiliary)), as.numeric)
-    population = mutate_at(population, intersect(all.vars(as.formula(auxiliary)), colnames(population)), as.numeric)
+    samples = dplyr::mutate_at(samples, all.vars(as.formula(auxiliary)), as.numeric)
+    population = dplyr::mutate_at(population, intersect(all.vars(as.formula(auxiliary)), colnames(population)), as.numeric)
 
     auxiliary = stringr::str_replace_all(auxiliary, "\\*", ":")
     auxiliary_fixed = setdiff(stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T), all.vars(as.formula(auxiliary)))[stringr::str_detect(stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T), "s\\(.*\\)")]
 
 
     outcome_formula = paste(formula, paste(auxiliary_fixed, collapse = "+"), sep = "+")
-    auxiliary_random =  union(intersect(stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T), all.vars(as.formula(auxiliary))), stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T)[is.na(stringr::str_match(stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T), "s\\(.*\\)"))])
+    auxiliary_random = union(intersect(stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T), all.vars(as.formula(auxiliary))), stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T)[is.na(stringr::str_match(stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T), "s\\(.*\\)"))])
 
     if(length(auxiliary_random) > 0){
-      samples = mutate_at(samples, all.vars(as.formula(paste0("~", auxiliary_random))), as.factor)
-      population = mutate_at(population, all.vars(as.formula(paste0("~", auxiliary_random))), as.factor)
+      samples = dplyr::mutate_at(samples, all.vars(as.formula(paste0("~", auxiliary_random))), as.factor)
+      population = dplyr::mutate_at(population, all.vars(as.formula(paste0("~", auxiliary_random))), as.factor)
     }
     if(length(auxiliary_random) != 0){
       outcome_formula = c(outcome_formula, paste0("~", paste0("(1|", auxiliary_random, ")", collapse = "+")))
@@ -672,7 +672,7 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
     if(is.null(npost)) npost = 1000
     if(is.null(nchain)) nchain = 4
     samples = mutate_at(samples, all.vars(as.formula(auxiliary)), as.numeric)
-    population = mutate_at(population, intersect(all.vars(as.formula(auxiliary)), colnames(population)), as.numeric)
+    population = dplyr::mutate_at(population, intersect(all.vars(as.formula(auxiliary)), colnames(population)), as.numeric)
 
 
     auxiliary_fixed = setdiff(stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T), all.vars(as.formula(auxiliary)))
@@ -680,8 +680,8 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
 
     outcome_formula = paste(formula, paste(auxiliary_fixed, collapse = "+"), collapse = "+")
     auxiliary_random = intersect(str_split(str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T), all.vars(as.formula(auxiliary)))
-    samples = mutate_at(samples, auxiliary_random, as.factor)
-    population = mutate_at(population, auxiliary_random, as.factor)
+    samples = dplyr::mutate_at(samples, auxiliary_random, as.factor)
+    population = dplyr::mutate_at(population, auxiliary_random, as.factor)
     if(length(auxiliary_random) != 0){
       outcome_formula = c(outcome_formula, paste0("~", paste0("(1|", auxiliary_random, ")", collapse = "+")))
       cat("The formula for the linear model is ", paste0(outcome_formula[1], str_replace(outcome_formula[2], "~", "+"), collapse = ""), "\n")
