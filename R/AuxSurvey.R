@@ -11,10 +11,10 @@ library(rstanarm)
 #' @return simulated dataset
 #' @export
 #'
-#' @import stats
+#' @rawNamespace import(stats, except = filter)
 #' @importFrom gtools quantcut
 #' @import mgcv
-#' @import dplyr
+#' @importFrom dplyr filter %>% as_tibble
 #' @import stringr
 #' @import BART
 #'
@@ -79,7 +79,7 @@ simulate = function(N = 3000, discretize =c(3, 5, 10), setting = c(1,2,3), seed 
 
   samples$inclusion = NULL
   population$inclusion = NULL
-  return(list(population = as_tibble(population), samples = as_tibble(samples)))
+  return(list(population = dplyr::as_tibble(population), samples = dplyr::as_tibble(samples)))
 }
 
 
@@ -96,11 +96,11 @@ simulate = function(N = 3000, discretize =c(3, 5, 10), setting = c(1,2,3), seed 
 #'
 #' @return A list. Each element contains the sample mean estimate and CIs for a subset or the whole data analysis.
 #'
-#' @import stats
+#' @rawNamespace import(stats, except = filter)
 #' @import rstanarm
 #' @import survey
 #' @import mgcv
-#' @import dplyr
+#' @importFrom dplyr filter %>%
 #' @import rlang
 #'
 uwt <- function(svysmpl, svyVar, svypopu = NULL, subset = NULL, family = gaussian(), invlvls, weights = NULL) {
@@ -112,6 +112,7 @@ uwt <- function(svysmpl, svyVar, svypopu = NULL, subset = NULL, family = gaussia
       des <- survey::svydesign(ids = ~1, weights = ~weights, data = svysmpl)
     }
   }else{
+    cat("population parameter is specified, so the finite population correction will be calculated for sample mean.\n")
     svysmpl$fpc <- nrow(svypopu)
     if(is.null(weights))
       des <- survey::svydesign(ids = ~1, weights = ~1, data = svysmpl, fpc = ~fpc)
@@ -173,11 +174,11 @@ uwt <- function(svysmpl, svyVar, svypopu = NULL, subset = NULL, family = gaussia
 #'
 #' @return A list. Each element contains the raking estimate and CIs for a subset or the whole data analysis.
 #'
-#' @import stats
+#' @rawNamespace import(stats, except = filter)
 #' @import rstanarm
 #' @import survey
 #' @import mgcv
-#' @import dplyr
+#' @importFrom dplyr filter %>%
 #' @import stringr
 #'
 rake_wt <- function(svysmpl, svypopu, auxVars, svyVar, subset = NULL, family = gaussian(), invlvls, weights = NULL, maxiter = 50) {
@@ -247,11 +248,11 @@ rake_wt <- function(svysmpl, svypopu, auxVars, svyVar, subset = NULL, family = g
 #'
 #' @return A list. Each element contains the Post-Stratification estimate and CIs for a subset or the whole data analysis.
 #'
-#' @import stats
+#' @rawNamespace import(stats, except = filter)
 #' @import rstanarm
 #' @import survey
 #' @import mgcv
-#' @import dplyr
+#' @importFrom dplyr filter %>%
 #' @import stringr
 #'
 postStr_wt <- function(svysmpl, svypopu, auxVars, svyVar, subset = NULL, family = gaussian(), invlvls, weights = NULL) {
@@ -338,11 +339,11 @@ postStr_wt <- function(svysmpl, svypopu, auxVars, svyVar, subset = NULL, family 
 #' @param shortest_CI  A logical scalar; if true, the calculated credible intervals for stan models are highest posterior density intervals. Otherwise the intervals are symmetric. Default is false.
 #' @return A list. Each element contains the Bayesian estimate and CIs for a subset or the whole data analysis.
 #'
-#' @import stats
+#' @rawNamespace import(stats, except = filter)
 #' @import rstanarm
 #' @import survey
 #' @import mgcv
-#' @import dplyr
+#' @importFrom dplyr filter %>%
 #' @import stringr
 #'
 svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NULL, family = gaussian(), invlvls, weights = NULL, nskip = 1000, npost = 1000, nchain = 4, printmod = TRUE, doFigure = FALSE, useTrueSample = F, stan_verbose = F, shortest_CI = F) {
@@ -467,11 +468,11 @@ svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NU
 #' @param nchain An integer to specify the number of MCMC chains for stan models. Default is 4. This parameter only works for Bayesian models.
 #' @param HPD_interval A logical scalar; if true, the calculated credible intervals for stan models are highest posterior density intervals. Otherwise the intervals are symmetric. Default is false. This parameter only works for Bayesian models.
 #'
-#' @import stats
+#' @rawNamespace import(stats, except = filter)
 #' @import rstanarm
 #' @import survey
 #' @import mgcv
-#' @import dplyr
+#' @importFrom dplyr mutate_at filter %>% pull
 #' @import stringr
 #' @import BART
 #'
@@ -724,7 +725,7 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
     }
     if(family$family == "binomial"){
       X_train = as.matrix(samples[, covariates])
-      y_train = pull(samples, svyVar)
+      y_train = dplyr::pull(samples, svyVar)
       if(!stan_verbose)
         model <- BART::pbart(X_train, y_train, ndpost = npost, nskip = nskip)
       else{
@@ -733,7 +734,7 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
     }
     if(family$family == "gaussian"){
       X_train = as.matrix(samples[, covariates])
-      y_train = pull(samples, svyVar)
+      y_train = dplyr::pull(samples, svyVar)
       if(!stan_verbose)
         model <- BART::wbart(X_train, y_train, ndpost = npost, nskip = nskip)
       else{
@@ -755,7 +756,7 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
 
       yhats_pop_tot <- yhats_pop %>% apply(1, sum) # npost * 1
       yhats_sam_tot <- yhats_sam %>% apply(1, sum) # npost * 1
-      yobs_tot <- sum(pull(dplyr::filter(samples, eval(parse(text = s))), svyVar)) # a single value
+      yobs_tot <- sum(dplyr::pull(dplyr::filter(samples, eval(parse(text = s))), svyVar)) # a single value
       post_est = (yhats_pop_tot + yobs_tot - yhats_sam_tot) / nrow(svypopu1) #npost
       tCI = sapply(levels, function(level){
         #confint(post_est, level = 0.95)
