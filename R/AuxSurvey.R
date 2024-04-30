@@ -1,5 +1,3 @@
-library(gtools)
-library(tidyverse)
 library(mgcv)
 library(rstanarm)
 
@@ -14,11 +12,11 @@ library(rstanarm)
 #' @export
 #'
 #' @import stats
-#' @import gtools
-#' @import tidyverse
+#' @importFrom gtools quantcut
 #' @import mgcv
 #' @import dplyr
 #' @import stringr
+#' @import BART
 #'
 simulate = function(N = 3000, discretize =c(3, 5, 10), setting = c(1,2,3), seed = NULL){
   if(!is.null(seed))
@@ -58,7 +56,7 @@ simulate = function(N = 3000, discretize =c(3, 5, 10), setting = c(1,2,3), seed 
     Y1 = Y1,
     Y2 = Y2,
     true_pi = pi,
-    logit_true_pi = gtools::logit(pi)
+    logit_true_pi = rstanarm::logit(pi)
   )
 
   U = runif(N)
@@ -99,10 +97,8 @@ simulate = function(N = 3000, discretize =c(3, 5, 10), setting = c(1,2,3), seed 
 #' @return A list. Each element contains the sample mean estimate and CIs for a subset or the whole data analysis.
 #'
 #' @import stats
-#' @import gtools
 #' @import rstanarm
 #' @import survey
-#' @import tidyverse
 #' @import mgcv
 #' @import dplyr
 #' @import rlang
@@ -178,10 +174,8 @@ uwt <- function(svysmpl, svyVar, svypopu = NULL, subset = NULL, family = gaussia
 #' @return A list. Each element contains the raking estimate and CIs for a subset or the whole data analysis.
 #'
 #' @import stats
-#' @import gtools
 #' @import rstanarm
 #' @import survey
-#' @import tidyverse
 #' @import mgcv
 #' @import dplyr
 #' @import stringr
@@ -254,10 +248,8 @@ rake_wt <- function(svysmpl, svypopu, auxVars, svyVar, subset = NULL, family = g
 #' @return A list. Each element contains the Post-Stratification estimate and CIs for a subset or the whole data analysis.
 #'
 #' @import stats
-#' @import gtools
 #' @import rstanarm
 #' @import survey
-#' @import tidyverse
 #' @import mgcv
 #' @import dplyr
 #' @import stringr
@@ -347,10 +339,8 @@ postStr_wt <- function(svysmpl, svypopu, auxVars, svyVar, subset = NULL, family 
 #' @return A list. Each element contains the Bayesian estimate and CIs for a subset or the whole data analysis.
 #'
 #' @import stats
-#' @import gtools
 #' @import rstanarm
 #' @import survey
-#' @import tidyverse
 #' @import mgcv
 #' @import dplyr
 #' @import stringr
@@ -459,10 +449,10 @@ svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NU
 #'
 #'This function provides a user-friendly interface for different estimators with the discretized auxiliary variables.
 #'
-#'The estimators includes (weighted) sample mean, (weighted) raking, (weighted) post-stratification, and three Bayesian methods: MRP, GAMP(Generalized additive model of response propensity) and (weighted) linear regression. The three Bayesian models are based on 'rstan' and 'rstanarm'.
+#'The estimators includes (weighted) sample mean, (weighted) raking, (weighted) post-stratification, and four Bayesian methods: BART, MRP, GAMP(Generalized additive model of response propensity) and (weighted) linear regression. The three Bayesian models are based on 'rstan' and 'rstanarm'.
 #'
 #' @param formula A string or formula for the specified formula for the outcome model. For non-model based methods(sample mean, raking, post-stratification), just include the outcome variable, such as "~Y". For model based methods (MRP, GAMP, LR), additional predictors can be specified as fixed effects term, such as "Y~X1+X2 + I(X^2)". For GAMP, smooth functions can be specified, such as "Y~X1 + s(X2, 10) + s(X3, by = X1)". Categorical variables are coded as dummy variables in model based methods.
-#' @param auxiliary A string for the specified formula for the auxiliary variables. For sample mean, just leave it as NULL. For raking, post-stratification, GAMP, use string for an additive model, such as "Z1 + Z2 + Z3". MRP specifies random effects for terms in this parameter, such as "Z1 + Z2 + Z3" or "Z1 + Z2:Z3".
+#' @param auxiliary A string for the specified formula for the auxiliary variables. For sample mean and BART, just leave it as NULL. For raking, post-stratification, GAMP, use string for an additive model, such as "Z1 + Z2 + Z3". MRP specifies random effects for terms in this parameter, such as "Z1 + Z2 + Z3" or "Z1 + Z2:Z3".
 #' @param samples A dataframe or tibble contains all variables in 'formula' and 'auxiliary'. This dataframe is a subset of 'population'.
 #' @param population A dataframe or tibble contains all variables in 'formula' and 'auxiliary'.
 #' @param subset A character vector. Each element is a string representing a filtering condition to select subset of samples and population. Default is NULL. When this parameter is NULL, the analysis is only performed on the whole data. If subsets are specified, the estimates for the whole data will also be calculated.
@@ -478,13 +468,12 @@ svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NU
 #' @param HPD_interval A logical scalar; if true, the calculated credible intervals for stan models are highest posterior density intervals. Otherwise the intervals are symmetric. Default is false. This parameter only works for Bayesian models.
 #'
 #' @import stats
-#' @import gtools
 #' @import rstanarm
 #' @import survey
-#' @import tidyverse
 #' @import mgcv
 #' @import dplyr
 #' @import stringr
+#' @import BART
 #'
 #'
 #' @return A list. Each element contains the estimate and CIs for a subset or the whole data analysis.
@@ -533,15 +522,23 @@ svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NU
 #' GAMP = auxsurvey("Y1~1 + Z1 + Z2 + Z3",  auxiliary = "s(auX_10) + s(logit_true_pi, by = Z1)",
 #'           samples = samples, population = population, subset = NULL, method = "GAMP",
 #'          levels = 0.95, nskip = 4000, npost = 4000, nchain = 1, stan_verbose = F, HPD_interval = T)
+#'
+#'
+#' ## BART with analysis on subsets Z1 == 1, Z1 == 1 & Z2 == 1, Z1 == 1 & Z2 == 1 & Z3 == 1.
+#' MRP = auxsurvey("Y1~1 + Z1 + Z2 + Z3 + auX_10",  auxiliary = NULL, samples = samples,
+#'         population = population,
+#'         subset = c("Z1 == 1", "Z1 == 1 & Z2 == 1", "Z1 == 1 & Z2 == 1 & Z3 == 1"),
+#'         method = "BART", levels = 0.95, nskip = 4000, npost = 4000,
+#'         nchain = 1, stan_verbose = F, HPD_interval = T)
 #' }
-auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, subset = NULL, family = gaussian(), method = c("sample_mean", "rake", "postStratify", "MRP", "GAMP", "linear"), weights = NULL, levels = c(0.95, 0.8, 0.5), stan_verbose = TRUE, show_plot = TRUE, nskip = 1000, npost = 1000, nchain = 4, HPD_interval = FALSE){
-  svyVar = stringr::str_trim(str_split_1(as.character(formula), "~"))
+auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, subset = NULL, family = gaussian(), method = c("sample_mean", "rake", "postStratify", "MRP", "GAMP", "linear", "BART"), weights = NULL, levels = c(0.95, 0.8, 0.5), stan_verbose = TRUE, show_plot = TRUE, nskip = 1000, npost = 1000, nchain = 4, HPD_interval = FALSE){
+  svyVar = stringr::str_trim(stringr::str_split_1(as.character(formula), "~"))
   svyVar = svyVar[svyVar != ""][1]
   if(!is.null(auxiliary)){
     auxiliary = as.character(auxiliary)
     auxiliary = stringr::str_remove_all(auxiliary, " ")
     auxiliary = paste0(auxiliary, collapse = "+")
-    if(!str_detect(auxiliary, "^~")){
+    if(!stringr::str_detect(auxiliary, "^~")){
       auxiliary = paste0("~",auxiliary)
     }
   }
@@ -709,6 +706,83 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
 
     #outcome_formula = paste(formula, paste0(str_remove_all(auxiliary, "~"), collapse = "+"), paste0("(1|", auxiliary_random, ")", collapse = "+"),  sep = "+")
     return(Linear_est)
+  }
+  if(method == "BART"){
+    if(is.null(nskip)) nskip = 1000
+    if(is.null(npost)) npost = 1000
+    if(is.null(nchain)) nchain = 1
+    covariates = str_trim(str_split(str_split_i(as.character(formula), "~", 2), "\\+", simplify = T))
+    covariates = setdiff(covariates, svyVar)
+    if("." %in% covariates){
+      covariates = setdiff(names(samples), svyVar)
+    }
+    for(i in covariates){
+      if(is.character(samples[,i])){
+        samples[,i] = as.factor(samples[,i])
+        population[,i] = as.factor(population[,i])
+      }
+    }
+    if(family$family == "binomial"){
+      X_train = as.matrix(samples[, covariates])
+      y_train = pull(samples, svyVar)
+      if(!stan_verbose)
+        model <- BART::pbart(X_train, y_train, ndpost = npost, nskip = nskip)
+      else{
+        model <- BART::pbart(X_train, y_train, ndpost = npost, nskip = nskip)
+      }
+    }
+    if(family$family == "gaussian"){
+      X_train = as.matrix(samples[, covariates])
+      y_train = pull(samples, svyVar)
+      if(!stan_verbose)
+        model <- BART::wbart(X_train, y_train, ndpost = npost, nskip = nskip)
+      else{
+        model <- BART::wbart(X_train, y_train, ndpost = npost, nskip = nskip)
+      }
+    }
+    subset = c("T", subset)
+    infr = sapply(subset, function(s){
+      svypopu1 = as.matrix(dplyr::filter(population, eval(parse(text = s)))[, covariates])
+      svysmpl1 = as.matrix(dplyr::filter(samples, eval(parse(text = s)))[, covariates])
+
+      yhats_pop <- predict(model, svypopu1) # npost, non-sample_size
+      yhats_sam <- predict(model, svysmpl1)
+      if(family$family == "binomial"){
+        yhats_pop = apply(yhats_pop$prob.test, c(1, 2), function(x) rbinom(1, size = 1, prob = x))
+        yhats_sam = apply(yhats_sam$prob.test, c(1, 2), function(x) rbinom(1, size = 1, prob = x))
+      }
+
+
+      yhats_pop_tot <- yhats_pop %>% apply(1, sum) # npost * 1
+      yhats_sam_tot <- yhats_sam %>% apply(1, sum) # npost * 1
+      yobs_tot <- sum(pull(dplyr::filter(samples, eval(parse(text = s))), svyVar)) # a single value
+      post_est = (yhats_pop_tot + yobs_tot - yhats_sam_tot) / nrow(svypopu1) #npost
+      tCI = sapply(levels, function(level){
+        #confint(post_est, level = 0.95)
+        if(HPD_interval){
+          class(post_est) <- 'mcmc'
+          ci = coda::HPDinterval(post_est, prob = level, names = T)
+          names(ci) = paste(((1 - level)/2 * c(1, -1) + c(0, 1)) * 100, "%")
+        }else{
+          ci = ((1 - level)/2 * c(1, -1) + c(0, 1))
+          ci = quantile(post_est, probs = ci, names = T)
+          names(ci) = str_replace(names(ci), "%", " %")
+        }
+        ci
+      }, simplify = F)
+
+      tCI = do.call("c", tCI)
+      infr <- rbind(c(post_mean_est = mean(post_est), post_median_est = median(post_est), se = sd(post_est), tCI, sample_size = nrow(svysmpl1), population_size = nrow(svypopu1)))
+      return(infr)
+    }, simplify = F)
+    names(infr)[1] = "All"
+    BART_est =  lapply(infr, function(est){
+      rownames(est) = "BART"
+      return(est)
+    })
+    if(length(BART_est) == 1)
+      return(BART_est[[1]])
+    return(BART_est)
   }
 }
 

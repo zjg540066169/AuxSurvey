@@ -11,7 +11,7 @@ auxsurvey(
   population = NULL,
   subset = NULL,
   family = gaussian(),
-  method = c("sample_mean", "rake", "postStratify", "MRP", "GAMP", "linear"),
+  method = c("sample_mean", "rake", "postStratify", "MRP", "GAMP", "linear", "BART"),
   weights = NULL,
   levels = c(0.95, 0.8, 0.5),
   stan_verbose = TRUE,
@@ -25,7 +25,7 @@ auxsurvey(
 \arguments{
 \item{formula}{A string or formula for the specified formula for the outcome model. For non-model based methods(sample mean, raking, post-stratification), just include the outcome variable, such as "~Y". For model based methods (MRP, GAMP, LR), additional predictors can be specified as fixed effects term, such as "Y~X1+X2 + I(X^2)". For GAMP, smooth functions can be specified, such as "Y~X1 + s(X2, 10) + s(X3, by = X1)". Categorical variables are coded as dummy variables in model based methods.}
 
-\item{auxiliary}{A string for the specified formula for the auxiliary variables. For sample mean, just leave it as NULL. For raking, post-stratification, GAMP, use string for an additive model, such as "Z1 + Z2 + Z3". MRP specifies random effects for terms in this parameter, such as "Z1 + Z2 + Z3" or "Z1 + Z2:Z3".}
+\item{auxiliary}{A string for the specified formula for the auxiliary variables. For sample mean and BART, just leave it as NULL. For raking, post-stratification, GAMP, use string for an additive model, such as "Z1 + Z2 + Z3". MRP specifies random effects for terms in this parameter, such as "Z1 + Z2 + Z3" or "Z1 + Z2:Z3".}
 
 \item{samples}{A dataframe or tibble contains all variables in 'formula' and 'auxiliary'. This dataframe is a subset of 'population'.}
 
@@ -61,7 +61,7 @@ Probability surveys often use auxiliary continuous data from administrative reco
 
 This function provides a user-friendly interface for different estimators with the discretized auxiliary variables.
 
-The estimators includes (weighted) sample mean, (weighted) raking, (weighted) post-stratification, and three Bayesian methods: MRP, GAMP(Generalized additive model of response propensity) and (weighted) linear regression. The three Bayesian models are based on 'rstan' and 'rstanarm'.
+The estimators includes (weighted) sample mean, (weighted) raking, (weighted) post-stratification, and four Bayesian methods: BART, MRP, GAMP(Generalized additive model of response propensity) and (weighted) linear regression. The three Bayesian models are based on 'rstan' and 'rstanarm'.
 }
 \examples{
 \dontrun{
@@ -106,5 +106,13 @@ MRP = auxsurvey("Y1~1 + Z1",  auxiliary = "Z2 + Z3:auX_10", samples = samples,
 GAMP = auxsurvey("Y1~1 + Z1 + Z2 + Z3",  auxiliary = "s(auX_10) + s(logit_true_pi, by = Z1)",
           samples = samples, population = population, subset = NULL, method = "GAMP",
          levels = 0.95, nskip = 4000, npost = 4000, nchain = 1, stan_verbose = F, HPD_interval = T)
+
+
+## BART with analysis on subsets Z1 == 1, Z1 == 1 & Z2 == 1, Z1 == 1 & Z2 == 1 & Z3 == 1.
+MRP = auxsurvey("Y1~1 + Z1 + Z2 + Z3 + auX_10",  auxiliary = NULL, samples = samples,
+        population = population,
+        subset = c("Z1 == 1", "Z1 == 1 & Z2 == 1", "Z1 == 1 & Z2 == 1 & Z3 == 1"),
+        method = "BART", levels = 0.95, nskip = 4000, npost = 4000,
+        nchain = 1, stan_verbose = F, HPD_interval = T)
 }
 }

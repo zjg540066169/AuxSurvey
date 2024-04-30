@@ -27,8 +27,7 @@ RoxygenNote: 7.2.3
 Depends: 
     mgcv,
     rstanarm,
-    stats,
-    tidyverse
+    stats
 Imports: 
     survey,
     gtools,
