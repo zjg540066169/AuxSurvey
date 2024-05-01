@@ -711,7 +711,7 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
     if(is.null(nskip)) nskip = 1000
     if(is.null(npost)) npost = 1000
     if(is.null(nchain)) nchain = 1
-    covariates = str_trim(str_split(str_split_i(as.character(formula), "~", 2), "\\+", simplify = T))
+    covariates = stringr::str_trim(stringr::str_split(stringr::str_split_i(as.character(formula), "~", 2), "\\+", simplify = T))
     covariates = setdiff(covariates, svyVar)
     if("." %in% covariates){
       covariates = setdiff(names(samples), svyVar)
@@ -725,20 +725,12 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
     if(family$family == "binomial"){
       X_train = as.matrix(samples[, covariates])
       y_train = dplyr::pull(samples, svyVar)
-      if(!stan_verbose)
-        model <- BART::pbart(X_train, y_train, ndpost = npost, nskip = nskip)
-      else{
-        model <- BART::pbart(X_train, y_train, ndpost = npost, nskip = nskip)
-      }
+      model <- BART::pbart(X_train, y_train, ndpost = npost, nskip = nskip)
     }
     if(family$family == "gaussian"){
       X_train = as.matrix(samples[, covariates])
       y_train = dplyr::pull(samples, svyVar)
-      if(!stan_verbose)
-        model <- BART::wbart(X_train, y_train, ndpost = npost, nskip = nskip)
-      else{
-        model <- BART::wbart(X_train, y_train, ndpost = npost, nskip = nskip)
-      }
+      model <- BART::wbart(X_train, y_train, ndpost = npost, nskip = nskip)
     }
     subset = c("T", subset)
     infr = sapply(subset, function(s){
@@ -766,7 +758,7 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
         }else{
           ci = ((1 - level)/2 * c(1, -1) + c(0, 1))
           ci = quantile(post_est, probs = ci, names = T)
-          names(ci) = str_replace(names(ci), "%", " %")
+          names(ci) = stringr::str_replace(names(ci), "%", " %")
         }
         ci
       }, simplify = F)
@@ -785,4 +777,5 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
     return(BART_est)
   }
 }
+
 
