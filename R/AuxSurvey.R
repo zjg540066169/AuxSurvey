@@ -42,9 +42,9 @@ simulate = function(N = 3000, discretize =c(3, 5, 10), setting = c(1,2,3), seed 
     Y2 = rbinom(N, 1, rstanarm::invlogit(-2.5 + 0.75*Z[,1] - 2.5*Z[,2] + 1.5*Z[,3] - 0.25*X + 1.5*X^2))
   }
   if(setting == 3){
-    pi = rstanarm::invlogit(-0.9 - 0.5 * Z[,1] + 0.75 * Z[,2] - Z[,3] + 0.5 * X - 0.05 * X^2 + 0.5 * Z[,1] * X - 0.75 * Z[,1] * X^2)
-    Y1 = rnorm(N, 15 + 2.5 * Z[,1] - Z[,2] + Z[,3] - 2 * X + X^2 + Z[,1] * X - 2.5 * Z[,1] * X^2, 2)
-    Y2 = rbinom(N, 1, rstanarm::invlogit(-1.75 + 0.75 * Z[,1] - 1.5 * Z[,2] + 1.5 * Z[,3] - 1.5 * X + X^2 + Z[,1] * X - 2.5 * Z[,1] * X^2))
+    pi = invlogit(-0.9 - 0.5 * Z[,1] + 0.75 * Z[,2] - Z[,3] + 0.5 * X - 0.1 * X^2 + 0.5 * Z[,1] * X + 0.25 * Z[,1] * X^2)
+    Y1 = rnorm(N, 15 + 2.5 * Z[,1] - Z[,2] + Z[,3] - 2 * X + X^2 + Z[,1] * X - 2 * Z[,1] * X^2, 2)
+    Y2 = rbinom(N, 1, invlogit(-1.75 + 0.75 * Z[,1] - 1.5 * Z[,2] + 1.5 * Z[,3] - 1.5 * X + X^2 + Z[,1] * X - 2 * Z[,1] * X^2))
   }
   population = data.frame(
     id = seq(1, N),
