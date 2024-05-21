@@ -46,6 +46,11 @@ simulate = function(N = 3000, discretize =c(3, 5, 10), setting = c(1,2,3), seed 
     Y1 = rnorm(N, 15 + 2.5 * Z[,1] - Z[,2] + Z[,3] - 2 * X + X^2 + Z[,1] * X - 2 * Z[,1] * X^2, 2)
     Y2 = rbinom(N, 1, invlogit(-1.75 + 0.75 * Z[,1] - 1.5 * Z[,2] + 1.5 * Z[,3] - 1.5 * X + X^2 + Z[,1] * X - 2 * Z[,1] * X^2))
   }
+  if(setting == 4){
+    pi = invlogit(-0.9 - 0.5 * Z[,1] + 0.75 * Z[,2] - Z[,3] + 0.5 * X - 0.1 * X^2 + 0.5 * Z[,1] * X + 0.75 * Z[,1] * X^2)
+    Y1 = rnorm(N, 15 + 2.5 * Z[,1] - Z[,2] + Z[,3] - 2 * X + X^2 + 1 * Z[,1] * X - 4 * Z[,1] * X^2, 2)
+    Y2 = rbinom(N, 1, invlogit(-1.75 + 0.75 * Z[,1] - 1.5 * Z[,2] + 1.5 * Z[,3] - 1.5 * X + X^2 + Z[,1] * X - 2.5 * Z[,1] * X^2))
+  }
   population = data.frame(
     id = seq(1, N),
     Z = Z,
