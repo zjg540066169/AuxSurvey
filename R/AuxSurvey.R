@@ -754,12 +754,12 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
       }
     }
     if(family$family == "binomial"){
-      X_train = as.matrix(samples[, covariates])
+      X_train = stats::model.matrix(formula, samples[, covariates])
       y_train = dplyr::pull(samples, svyVar)
       model <- BART::pbart(X_train, y_train, ndpost = npost, nskip = nskip)
     }
     if(family$family == "gaussian"){
-      X_train = as.matrix(samples[, covariates])
+      X_train = stats::model.matrix(formula, samples[, covariates])
       y_train = dplyr::pull(samples, svyVar)
       model <- BART::wbart(X_train, y_train, ndpost = npost, nskip = nskip)
     }
