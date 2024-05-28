@@ -341,6 +341,7 @@ postStr_wt <- function(svysmpl, svypopu, auxVars, svyVar, subset = NULL, family 
 #' @param useTrueSample A logical to indicate if the estimator uses samples information
 #' @param stan_verbose A logical to indicate if print MCMC information in stan
 #' @param shortest_CI  A logical scalar; if true, the calculated credible intervals for stan models are highest posterior density intervals. Otherwise the intervals are symmetric. Default is false.
+#' @param seed An integer. Random seed to set. Default is NULL.
 #' @return A list. Each element contains the Bayesian estimate and CIs for a subset or the whole data analysis.
 #'
 #' @rawNamespace import(stats, except = filter)
@@ -350,26 +351,47 @@ postStr_wt <- function(svysmpl, svypopu, auxVars, svyVar, subset = NULL, family 
 #' @importFrom dplyr filter %>%
 #' @import stringr
 #'
-svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NULL, family = gaussian(), invlvls, weights = NULL, nskip = 1000, npost = 1000, nchain = 4, printmod = TRUE, doFigure = FALSE, useTrueSample = F, stan_verbose = F, shortest_CI = F) {
+svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NULL, family = gaussian(), invlvls, weights = NULL, nskip = 1000, npost = 1000, nchain = 4, printmod = TRUE, doFigure = FALSE, useTrueSample = F, stan_verbose = F, shortest_CI = F, seed = NULL) {
+  if (!is.null(seed))
+    set.seed(seed)
   #print(outcome_formula)
   subset = c("T", subset)
   fmla <- outcome_formula[1] %>% as.formula()
   #print("start fit model")
-  if(is.null(weights)){
-    if(!is.na(outcome_formula[2])){
-      bayesmod <- get(BayesFun)(fmla, family = family, random = as.formula(outcome_formula[2]), data = svysmpl, iter = nskip + npost, warmup = nskip, chains = nchain, refresh = stan_verbose)
-    }else{
-      bayesmod <- get(BayesFun)(fmla, family = family, data = svysmpl, iter = nskip + npost, warmup = nskip, chains = nchain, refresh = stan_verbose)
+  if(!is.null(seed)){
+    if(is.null(weights)){
+      if(!is.na(outcome_formula[2])){
+        bayesmod <- get(BayesFun)(fmla, family = family, random = as.formula(outcome_formula[2]), data = svysmpl, iter = nskip + npost, warmup = nskip, chains = nchain, refresh = stan_verbose, seed = seed)
+      }else{
+        bayesmod <- get(BayesFun)(fmla, family = family, data = svysmpl, iter = nskip + npost, warmup = nskip, chains = nchain, refresh = stan_verbose, seed = seed)
+      }
+    }
+    else{
+      if(!is.na(outcome_formula[2])){
+        bayesmod <- get(BayesFun)(fmla, family = family, data = svysmpl, iter = nskip + npost, warmup = nskip, weights = weights, chains = nchain, random = as.formula(outcome_formula[2]), refresh = stan_verbose, seed = seed)
+      }else{
+        bayesmod <- get(BayesFun)(fmla, family = family, data = svysmpl, iter = nskip + npost, warmup = nskip, weights = weights, chains = nchain, refresh = stan_verbose, seed = seed)
+      }
+      #bayesmod <- get(BayesFun)(fmla, data = svysmpl, iter = nskip + npost, warmup = nskip, weights = weights, chains = nchain, random = as.formula(formula[2]))
+    }
+  }else{
+    if(is.null(weights)){
+      if(!is.na(outcome_formula[2])){
+        bayesmod <- get(BayesFun)(fmla, family = family, random = as.formula(outcome_formula[2]), data = svysmpl, iter = nskip + npost, warmup = nskip, chains = nchain, refresh = stan_verbose)
+      }else{
+        bayesmod <- get(BayesFun)(fmla, family = family, data = svysmpl, iter = nskip + npost, warmup = nskip, chains = nchain, refresh = stan_verbose)
+      }
+    }
+    else{
+      if(!is.na(outcome_formula[2])){
+        bayesmod <- get(BayesFun)(fmla, family = family, data = svysmpl, iter = nskip + npost, warmup = nskip, weights = weights, chains = nchain, random = as.formula(outcome_formula[2]), refresh = stan_verbose)
+      }else{
+        bayesmod <- get(BayesFun)(fmla, family = family, data = svysmpl, iter = nskip + npost, warmup = nskip, weights = weights, chains = nchain, refresh = stan_verbose)
+      }
+      #bayesmod <- get(BayesFun)(fmla, data = svysmpl, iter = nskip + npost, warmup = nskip, weights = weights, chains = nchain, random = as.formula(formula[2]))
     }
   }
-  else{
-    if(!is.na(outcome_formula[2])){
-      bayesmod <- get(BayesFun)(fmla, family = family, data = svysmpl, iter = nskip + npost, warmup = nskip, weights = weights, chains = nchain, random = as.formula(outcome_formula[2]), refresh = stan_verbose)
-    }else{
-      bayesmod <- get(BayesFun)(fmla, family = family, data = svysmpl, iter = nskip + npost, warmup = nskip, weights = weights, chains = nchain, refresh = stan_verbose)
-    }
-    #bayesmod <- get(BayesFun)(fmla, data = svysmpl, iter = nskip + npost, warmup = nskip, weights = weights, chains = nchain, random = as.formula(formula[2]))
-  }
+
   #print("end fit model")
   #if (meth %in% c('Cov', 'catCov') )  bayesmod <- stan_glm(fmla, data = svysmpl)
   #if (meth %in% c('GAMcatCov' , 'GAM-Cov', 'GAM-PS', 'GAM-lgtPS', 'GAM-slgtPS') ) bayesmod <- stan_gamm4(fmla, data = svysmpl)
@@ -417,8 +439,8 @@ svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NU
       svypopu1 = dplyr::filter(svypopu, eval(parse(text = s)))
       svysmpl1 = dplyr::filter(svysmpl, eval(parse(text = s)))
 
-      yhats_pop <- posterior_predict(bayesmod, svypopu1, re.form = NA) # npost, non-sample_size
-      yhats_sam <- posterior_predict(bayesmod, svysmpl1, re.form = NA)
+      yhats_pop <- posterior_predict(bayesmod, svypopu1, re.form = NA, seed = seed) # npost, non-sample_size
+      yhats_sam <- posterior_predict(bayesmod, svysmpl1, re.form = NA, seed = seed)
 
       yhats_pop_tot <- yhats_pop %>% apply(1, sum) # npost * 1
       yhats_sam_tot <- yhats_sam %>% apply(1, sum) # npost * 1
@@ -471,6 +493,7 @@ svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NU
 #' @param npost An integer to specify the number of posterior sampling iteration of each chain in MCMC for stan models. Default is 1000. This parameter only works for Bayesian models.
 #' @param nchain An integer to specify the number of MCMC chains for stan models. Default is 4. This parameter only works for Bayesian models.
 #' @param HPD_interval A logical scalar; if true, the calculated credible intervals for stan models are highest posterior density intervals. Otherwise the intervals are symmetric. Default is false. This parameter only works for Bayesian models.
+#' @param seed An integer. Random seed to set. Default is NULL.
 #'
 #' @rawNamespace import(stats, except = filter)
 #' @import rstanarm
@@ -536,7 +559,10 @@ svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NU
 #'         method = "BART", levels = 0.95, nskip = 4000, npost = 4000,
 #'         nchain = 1, stan_verbose = F, HPD_interval = T)
 #' }
-auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, subset = NULL, family = gaussian(), method = c("sample_mean", "rake", "postStratify", "MRP", "GAMP", "linear", "BART"), weights = NULL, levels = c(0.95, 0.8, 0.5), stan_verbose = TRUE, show_plot = TRUE, nskip = 1000, npost = 1000, nchain = 4, HPD_interval = FALSE){
+auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, subset = NULL, family = gaussian(), method = c("sample_mean", "rake", "postStratify", "MRP", "GAMP", "linear", "BART"), weights = NULL, levels = c(0.95, 0.8, 0.5), stan_verbose = TRUE, show_plot = TRUE, nskip = 1000, npost = 1000, nchain = 4, HPD_interval = FALSE, seed = NULL){
+  if(!is.null(seed))
+    set.seed(seed)
+
   svyVar = stringr::str_trim(stringr::str_split_1(as.character(formula), "~"))
   svyVar = svyVar[svyVar != ""][1]
   if(!is.null(auxiliary)){
@@ -657,7 +683,7 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
 
     #outcome_formula = paste(formula, paste0(str_remove_all(auxiliary, "~"), collapse = "+"), paste0("(1|", auxiliary_random, ")", collapse = "+"),  sep = "+")
 
-    GAMP_est = svyBayesmod(samples, population, outcome_formula, "stan_gamm4", subset, family, levels, weights, nskip, npost, nchain, printmod = T, doFigure = F, useTrueSample = T, stan_verbose = stan_verbose, shortest_CI = HPD_interval)
+    GAMP_est = svyBayesmod(samples, population, outcome_formula, "stan_gamm4", subset, family, levels, weights, nskip, npost, nchain, printmod = T, doFigure = F, useTrueSample = T, stan_verbose = stan_verbose, shortest_CI = HPD_interval, seed = seed)
     #print(GAMP_est)
 
     GAMP_est =  lapply(GAMP_est, function(est){
