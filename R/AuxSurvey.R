@@ -754,20 +754,27 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
       }
     }
     if(family$family == "binomial"){
-      X_train = stats::model.matrix(formula, samples[, covariates])
+      X_train = stats::model.matrix(as.formula(paste0("~", stringr::str_split_i(as.character(formula), "~", 2))), samples[, covariates])
+      #X_train = samples[, covariates]
+      #print(colnames(X_train))
       y_train = dplyr::pull(samples, svyVar)
-      model <- BART::pbart(X_train, y_train, ndpost = npost, nskip = nskip)
+      model <- BART::pbart(X_train, y_train, ndpost = npost, nskip = nskip, rm.const=F)
     }
     if(family$family == "gaussian"){
-      X_train = stats::model.matrix(formula, samples[, covariates])
+      X_train = stats::model.matrix(as.formula(paste0("~", stringr::str_split_i(as.character(formula), "~", 2))), samples[, covariates])
+      #X_train = samples[, covariates]
       y_train = dplyr::pull(samples, svyVar)
-      model <- BART::wbart(X_train, y_train, ndpost = npost, nskip = nskip)
+      model <- BART::wbart(X_train, y_train, ndpost = npost, nskip = nskip, rm.const=F)
     }
     subset = c("T", subset)
     infr = sapply(subset, function(s){
-      svypopu1 = as.matrix(dplyr::filter(population, eval(parse(text = s)))[, covariates])
-      svysmpl1 = as.matrix(dplyr::filter(samples, eval(parse(text = s)))[, covariates])
-
+      svypopu1 = dplyr::filter(population, eval(parse(text = s)))[, covariates]
+      svysmpl1 = dplyr::filter(samples, eval(parse(text = s)))[, covariates]
+      #print(svypopu1)
+      svypopu1 = stats::model.matrix(as.formula(paste0("~", stringr::str_split_i(as.character(formula), "~", 2))), svypopu1)
+      svysmpl1 = stats::model.matrix(as.formula(paste0("~", stringr::str_split_i(as.character(formula), "~", 2))), svysmpl1)
+      #print(svypopu1)
+      #print(colnames(svypopu1))
       yhats_pop <- predict(model, svypopu1) # npost, non-sample_size
       yhats_sam <- predict(model, svysmpl1)
       if(family$family == "binomial"){
