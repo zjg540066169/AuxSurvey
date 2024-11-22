@@ -199,22 +199,6 @@ For BART, specify the predictors in `formula` and leave `auxiliary` as NULL.
 BART_1 = auxsurvey("Y1~ Z1 + Z2 + Z3 + auX_3 + logit_true_pi",  auxiliary = NULL, samples = samples, population = population, subset = "Z1 == 1 & Z2 == 1 & Z3 == 0", method = "BART", levels = 0.95,  HPD_interval = T)
 ```
 
-
-## Attribution
-
-This package includes code derived from the [BART3](https://github.com/rsparapa/bnptools/tree/master) package, originally developed by Rodney Sparapani. 
-
-The original source code, licensed under the [GNU General Public License version 2 (GPL-2)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.html), has been modified as follows:
-- We include part of the C++ code in BART3, primarily about functions about `wbart` and `cpwart`. We also modify some files to make sure our package can be successfully compiled.
-- Modifications were made by Jungang Zou, 2024.
-
-### Licensing
-
-- The original BART3 package is licensed under the GNU General Public License version 2 (GPL-2).
-- This package, as a derived work, is also licensed under the GNU General Public License version 2 (GPL-2) to comply with the licensing terms.
-
-For more details, please see the `LICENSE` file included in this repository.
-
 ---
 
 ## Contact
