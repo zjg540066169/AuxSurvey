@@ -38,3 +38,7 @@ Imports:
     gridExtra,
     rlang
 License: Apache License (>= 2)
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr

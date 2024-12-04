@@ -1,0 +1,149 @@
+---
+title: "Introduction for AuxSurvey: a package to improving survey inference using administrative records"
+output: html_vignette
+vignette: >
+  %\VignetteIndexEntry{introduction}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Introduction
+
+The **AuxSurvey** R package provides a set of statistical methods for improving survey inference by using **discretized auxiliary variables** from administrative records. The utility of such auxiliary data can often be diminished due to discretization for confidentiality reasons, but this package offers multiple estimators that handle such discretized auxiliary variables effectively.
+
+This vignette demonstrates the key functionalities of the **AuxSurvey** package, including:
+
+- Weighted or unweighted sample mean
+- Weighted or unweighted raking
+- Weighted or unweighted poststratification
+- MRP (Bayesian Multilevel Regression with Poststratification)
+- GAMP (Bayesian Generalized Additive Model of Response Propensity)
+- Bayesian Linear Regression
+- BART (Bayesian Additive Regression Trees)
+
+These methods are designed for use with discretized auxiliary variables in survey data, and we will walk through the installation, data generation, and estimation examples.
+
+## Installation
+
+You can install the **AuxSurvey** package directly from GitHub using **devtools** as it is not available on CRAN at the moment. Please ensure that the `rstan` and `rstanarm` packages are installed on your system before proceeding.
+
+```{r}
+#require("devtools")
+#install_github("https://github.com/zjg540066169/AuxSurvey")
+library(AuxSurvey)
+```
+
+If you encounter the following error when running Bayesian models:
+```Error in initializePtr() : function 'cholmod_factor_ldetA' not provided by package 'Matrix'```
+
+You can resolve it by installing the `lme4` package from source:
+
+```{r eval=FALSE}
+install.packages("lme4", type = "source")
+library(AuxSurvey)
+```
+
+## Generate Simulated Data
+
+The **AuxSurvey** package includes a function `simulate()` that generates the datasets used in the paper. These datasets include a population of 3000 samples and a sample of about 600 cases, with two outcomes (`Y1` as a continuous variable, `Y2` as a binary outcome).
+
+The covariates in the dataset include:
+- `Z1`, `Z2`, `Z3`: Binary covariates
+- `X`: Continuous covariate
+- Discretized versions of `X`: `auX_3`, `auX_5`, `auX_10`
+- Propensity scores: `true_pi` (true), `logit_true_pi`, `estimated_pi` (estimated using BART)
+
+```{r}
+# Generate data
+data = simulate(N = 3000, discretize = c(3, 5, 10), setting = 1, seed = 123)
+population = data$population  # Full population data (3000 cases)
+samples = data$samples  # Sample data (600 cases)
+ipw = 1 / samples$true_pi  # True inverse probability weighting
+est_ipw = 1 / samples$estimated_pi  # Estimated inverse probability weighting
+true_mean = mean(population$Y1)  # True value of the estimator
+```
+
+## Estimation Methods
+
+After generating the data, we can use the `auxsurvey()` function to apply various estimators. The **`auxsurvey()`** function supports multiple estimation methods, including unweighted or weighted sample mean, raking, poststratification, MRP, GAMP, linear regression, and BART.
+
+### Example 1: Sample Mean
+
+To estimate the **sample mean** for `Y1`, we can use the `auxsurvey()` function. For the unweighted sample mean:
+
+```{r}
+# Unweighted sample mean
+sample_mean = auxsurvey("~Y1", auxiliary = NULL, weights = NULL, samples = samples, population = NULL, method = "sample_mean", levels = 0.95)
+```
+
+For the inverse probability weighted (IPW) sample mean:
+
+```{r}
+# IPW sample mean
+IPW_sample_mean = auxsurvey("~Y1", auxiliary = NULL, weights = ipw, samples = samples, population = population, method = "sample_mean", levels = 0.95)
+```
+
+### Example 2: Raking
+
+The **raking** method adjusts the sample to match known marginal distributions of the auxiliary variables. You can apply raking for `auX_5`:
+
+```{r}
+# Unweighted Raking for auX_5 with interaction with Z1
+rake_5_Z1 = auxsurvey("~Y1", auxiliary = "Z2 + Z3 + auX_5 * Z1", weights = NULL, samples = samples, population = population, method = "rake", levels = 0.95)
+```
+
+For IPW raking:
+
+```{r}
+# IPW Raking for auX_10
+rake_10 = auxsurvey("~Y1", auxiliary = "Z1 + Z2 + Z3 + auX_10", weights = ipw, samples = samples, population = population, method = "rake", levels = c(0.95, 0.8))
+```
+
+### Example 3: MRP (Multilevel Regression with Poststratification)
+
+The **MRP** method models the outcome using both fixed and random effects. Here is an example of running MRP with `auX_3` as a random effect:
+
+```{r eval=FALSE}
+# MRP with auX_3
+MRP_1 = auxsurvey("Y1 ~ Z1 + Z2", auxiliary = "Z3 + auX_3", samples = samples, population = population, method = "MRP", levels = 0.95)
+```
+
+### Example 4: GAMP (Generalized Additive Model of Response Propensity)
+
+The **GAMP** method can include smooth functions of the auxiliary variables. For example, here’s how to use smooth functions of `logit_estimated_pi` and `auX_10`:
+
+```{r eval=FALSE}
+# GAMP with smooth functions
+GAMP_1 = auxsurvey("Y1 ~ 1 + Z1 + Z2 + Z3", auxiliary = "s(logit_estimated_pi) + s(auX_10)", samples = samples, population = population, method = "GAMP", levels = 0.95)
+```
+
+### Example 5: Bayesian Linear Regression
+
+The **Bayesian Linear Regression** method treats categorical variables as dummy variables. Here’s an example for `Y1`:
+
+```{r eval=FALSE}
+# Linear regression with Bayesian estimation
+LR_1 = auxsurvey("Y1 ~ 1 + Z1 + Z2 + Z3", auxiliary = "auX_3", samples = samples, population = population, method = "linear", levels = 0.95)
+```
+
+### Example 6: BART (Bayesian Additive Regression Trees)
+
+Finally, the **BART** method can be applied to estimate the relationship between the outcome and the covariates. Here's an example for estimating `Y1` using BART:
+
+```{r}
+# BART for estimation
+BART_1 = auxsurvey("Y1 ~ Z1 + Z2 + Z3 + auX_3 + logit_true_pi", auxiliary = NULL, samples = samples, population = population, method = "BART", levels = 0.95)
+```
+
+## Conclusion
+
+The **AuxSurvey** package provides a powerful set of tools for survey analysis when working with discretized auxiliary data. By leveraging various Bayesian models and traditional survey methods like raking and poststratification, users can enhance their inference without violating confidentiality.
+
+For further details on the package's functionality, please refer to the documentation, which provides more examples and explanation of the various estimators.
