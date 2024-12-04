@@ -2,7 +2,7 @@
 % Please edit documentation in R/AuxSurvey.R
 \name{postStr_wt}
 \alias{postStr_wt}
-\title{Weighted or Unweighted Post-Stratification}
+\title{Weighted or Unweighted Post-Stratification Estimator}
 \usage{
 postStr_wt(
   svysmpl,
@@ -16,25 +16,64 @@ postStr_wt(
 )
 }
 \arguments{
-\item{svysmpl}{A dataframe or tibble to represent 'samples'.}
+\item{svysmpl}{A dataframe or tibble representing the sample data (\code{samples}). This should contain
+the outcome variable and any auxiliary variables.}
 
-\item{svypopu}{A dataframe or tibble to represent 'population'.}
+\item{svypopu}{A dataframe or tibble representing the population data (\code{population}). This is used to compute the
+finite population correction (FPC) for post-stratification.}
 
-\item{auxVars}{A character vector contains the names of auxiliary variables for Post-Stratification.}
+\item{auxVars}{A character vector containing the names of auxiliary variables to be used for post-stratification.
+These variables will be used to adjust the weights.}
 
-\item{svyVar}{Outcome variable.}
+\item{svyVar}{The outcome variable for which the post-stratification estimate is calculated.}
 
-\item{subset}{A character vector. Each element is a string representing a filtering condition to select subset of samples and population. Default is NULL. When this parameter is NULL, the analysis is only performed on the whole data. If subsets are specified, the estimates for the whole data will also be calculated.}
+\item{subset}{A character vector representing filtering conditions to select subsets of the sample and population.
+Default is \code{NULL}, in which case the analysis is performed on the entire dataset. If subsets are specified,
+estimates for both the whole data and the subsets will also be calculated.}
 
-\item{family}{The distribution family of outcome variable. Currently we only support \code{\link[stats]{gaussian}} and \code{\link[stats]{binomial}}.}
+\item{family}{The distribution family of the outcome variable. Supported options are:
+\code{\link[stats]{gaussian}} for continuous outcomes and \code{\link[stats]{binomial}} for binary outcomes.}
 
-\item{invlvls}{A numeric vector of values. Each specifies a confidence level of CI for estimators. If more than one values are specified, then multiple CIs are calculated.}
+\item{invlvls}{A numeric vector specifying the confidence levels for the post-stratification estimators.
+If more than one value is provided, multiple CIs will be calculated.}
 
-\item{weights}{A numeric vector of case weights. The length should be equal to the number of cases in 'samples'.}
+\item{weights}{A numeric vector of case weights. The length should match the number of cases in \code{svysmpl}.
+These weights are used in the weighted post-stratification adjustment.}
 }
 \value{
-A list. Each element contains the Post-Stratification estimate and CIs for a subset or the whole data analysis.
+A list where each element contains the post-stratification estimate and confidence intervals (CIs) for a subset or the entire
+dataset. The list includes:
+- \code{est}: The post-stratification estimate for the outcome variable.
+- \code{se}: The standard error of the estimate.
+- \code{tCI}: The confidence intervals for the estimate.
+- \code{sample_size}: The sample size for the subset or entire dataset.
+- \code{population_size}: The population size, if provided, including the finite population correction (FPC).
 }
 \description{
-Weighted or Unweighted Post-Stratification
+This function performs post-stratification adjustment for survey data, which adjusts the sample
+weights to match the marginal distributions of auxiliary variables in the population. It supports
+both weighted and unweighted estimations for various outcome variables, including Gaussian (continuous)
+and Binomial (binary) outcomes. The function computes estimates and confidence intervals (CIs) for
+the outcome variable using post-stratification based on the specified auxiliary variables.
+}
+\examples{
+## Simulate data with nonlinear association (setting 3).
+data = simulate(N = 3000, discretize = 3, setting = 3, seed = 123)
+population = data$population  # Population data (3000 cases)
+samples = data$samples        # Sample data (600 cases)
+ipw = 1 / samples$true_pi    # Compute inverse probability weights
+
+## Perform weighted post-stratification with auxiliary variables
+auxVars = c("Z1", "Z2", "Z3")
+Weighted_postStratify = postStr_wt(svysmpl = samples, svypopu = population, auxVars = auxVars,
+                                   svyVar = "Y1", subset = NULL, family = gaussian(),
+                                   invlvls = c(0.95), weights = ipw)
+Weighted_postStratify
+
+## Perform unweighted post-stratification
+Unweighted_postStratify = postStr_wt(svysmpl = samples, svypopu = population, auxVars = auxVars,
+                                     svyVar = "Y1", subset = NULL, family = gaussian(),
+                                     invlvls = c(0.95), weights = NULL)
+Unweighted_postStratify
+
 }

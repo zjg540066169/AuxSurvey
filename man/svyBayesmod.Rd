@@ -2,7 +2,7 @@
 % Please edit documentation in R/AuxSurvey.R
 \name{svyBayesmod}
 \alias{svyBayesmod}
-\title{Title}
+\title{Bayesian Survey Model Estimation}
 \usage{
 svyBayesmod(
   svysmpl,
@@ -20,48 +20,87 @@ svyBayesmod(
   doFigure = FALSE,
   useTrueSample = F,
   stan_verbose = F,
-  shortest_CI = F,
+  HPD_CI = F,
   seed = NULL
 )
 }
 \arguments{
-\item{svysmpl}{A dataframe or tibble to represent 'samples'.}
+\item{svysmpl}{A dataframe or tibble representing the sample data (\code{samples}). This should contain
+the outcome variable and any additional covariates.}
 
-\item{svypopu}{A dataframe or tibble to represent 'population'.}
+\item{svypopu}{A dataframe or tibble representing the population data (\code{population}).
+This should contain all variables in the model.}
 
-\item{outcome_formula}{A formula for stan.}
+\item{outcome_formula}{A formula for Stan, specifying the outcome and predictors in the model.}
 
-\item{BayesFun}{Function name for stan}
+\item{BayesFun}{The name of the Stan function to be used for fitting the Bayesian model.}
 
-\item{subset}{A character vector. Each element is a string representing a filtering condition to select subset of samples and population. Default is NULL. When this parameter is NULL, the analysis is only performed on the whole data. If subsets are specified, the estimates for the whole data will also be calculated.}
+\item{subset}{A character vector representing filtering conditions to select subsets of the sample and population.
+Default is \code{NULL}, in which case the analysis is performed on the entire dataset. If specified,
+estimates for both the whole data and the subsets will be calculated.}
 
-\item{family}{The distribution family of outcome variable. Currently we only support \code{\link[stats]{gaussian}} and \code{\link[stats]{binomial}}.}
+\item{family}{The distribution family for the outcome variable. Currently, the following options are supported:
+\code{\link[stats]{gaussian}} for continuous outcomes and \code{\link[stats]{binomial}} for binary outcomes.}
 
-\item{invlvls}{A numeric vector of values. Each specifies a confidence level of CI for estimators. If more than one values are specified, then multiple CIs are calculated.}
+\item{invlvls}{A numeric vector specifying the confidence levels for the credible intervals (CIs). If more than
+one value is specified, multiple CIs will be calculated.}
 
-\item{weights}{A numeric vector of case weights. The length should be equal to the number of cases in 'samples'.}
+\item{weights}{A numeric vector of case weights. The length of this vector should match the number of cases in \code{svysmpl}.
+These weights will be used in the Bayesian model for weighted estimation.}
 
-\item{nskip}{A integer to specify the number of burn-in iterations of each chain in MCMC for stan models. Default is 1000.}
+\item{nskip}{An integer specifying the number of burn-in iterations for each chain in the MCMC for Stan models.
+Default is 1000.}
 
-\item{npost}{A integer to specify the number of posterior sampling iteration of each chain in MCMC for stan models. Default is 1000.}
+\item{npost}{An integer specifying the number of posterior sampling iterations for each chain in the MCMC for Stan models.
+Default is 1000.}
 
-\item{nchain}{A integer to specify the number of MCMC chains for stan models. Default is 4.}
+\item{nchain}{An integer specifying the number of MCMC chains for Stan models. Default is 4.}
 
-\item{printmod}{A logical to indicate if print posterior estimates}
+\item{printmod}{A logical scalar; if \code{TRUE}, posterior estimates will be printed.}
 
-\item{doFigure}{A logical to indicate if print MCMC figures}
+\item{doFigure}{A logical scalar; if \code{TRUE}, MCMC diagnostic plots will be generated.}
 
-\item{useTrueSample}{A logical to indicate if the estimator uses samples information}
+\item{useTrueSample}{A logical scalar; if \code{TRUE}, the estimator will use true sample information.}
 
-\item{stan_verbose}{A logical to indicate if print MCMC information in stan}
+\item{stan_verbose}{A logical scalar; if \code{TRUE}, MCMC information will be printed during Stan model fitting.}
 
-\item{shortest_CI}{A logical scalar; if true, the calculated credible intervals for stan models are highest posterior density intervals. Otherwise the intervals are symmetric. Default is false.}
+\item{HPD_CI}{A logical scalar; if \code{TRUE}, the calculated credible intervals will be highest posterior density intervals (HPD).
+Otherwise, symmetric intervals will be used. Default is \code{FALSE}.}
 
-\item{seed}{An integer. Random seed to set. Default is NULL.}
+\item{seed}{An integer specifying the random seed for reproducibility. Default is \code{NULL}.}
 }
 \value{
-A list. Each element contains the Bayesian estimate and CIs for a subset or the whole data analysis.
+A list containing the Bayesian estimates and confidence intervals (CIs) for each subset or the entire dataset.
+Each element in the list includes:
+- \code{estimate}: The Bayesian point estimate for the outcome.
+- \code{CI}: The credible intervals for the outcome estimate.
+- Other elements based on the specified confidence levels in \code{invlvls}.
 }
 \description{
-Title
+This function fits a Bayesian model using Stan for survey data. It allows you to specify
+the outcome formula, the function for Stan, and apply different types of survey analysis, including
+weighted or unweighted models, for both sample and population data. The function supports
+posterior estimation, confidence intervals (CIs), and MCMC diagnostics.
+}
+\examples{
+\dontrun{
+## Example usage with survey data:
+## Simulate sample and population data
+simulate(N = 3000, discretize = 3, setting = 3, seed = 123)
+population = data$population  # Get population data
+samples = data$samples        # Get sample data
+ipw = 1 / samples$true_pi    # Compute inverse probability weights
+
+## Define outcome formula and Stan function
+outcome_formula = "Y1 ~ Z1 + Z2 + Z3 + (1|auX_3)"
+BayesFun = "stan_glmer"
+
+## Fit Bayesian model using weighted survey data
+bayes_model = svyBayesmod(svysmpl = samples, svypopu = population,
+                          outcome_formula = outcome_formula,
+                          BayesFun = BayesFun, weights = ipw,
+                          family = gaussian(), nskip = 2000, npost = 2000,
+                          nchain = 2, printmod = TRUE, invlvls = 0.95, stan_verbose = T)
+}
+
 }

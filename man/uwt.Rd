@@ -15,23 +15,58 @@ uwt(
 )
 }
 \arguments{
-\item{svysmpl}{A dataframe or tibble to represent 'samples'.}
+\item{svysmpl}{A dataframe or tibble representing the sample data (\code{samples}). This should contain
+the outcome variable and any additional covariates.}
 
-\item{svyVar}{Outcome variable.}
+\item{svyVar}{The outcome variable to estimate the sample mean for (e.g., \code{Y1}).}
 
-\item{svypopu}{population.}
+\item{svypopu}{A dataframe or tibble representing the population data (\code{population}). This is used to compute
+the finite population correction (FPC) when calculating the sample mean. Default is \code{NULL}.}
 
-\item{subset}{A character vector. Each element is a string representing a filtering condition to select subset of samples and population. Default is NULL. When this parameter is NULL, the analysis is only performed on the whole data. If subsets are specified, the estimates for the whole data will also be calculated.}
+\item{subset}{A character vector representing filtering conditions to select subsets of the sample and population.
+Default is \code{NULL}, in which case the analysis is performed on the entire dataset. If subsets are specified,
+estimates for both the whole data and the subsets will be calculated.}
 
-\item{family}{The distribution family of outcome variable. Currently we only support \code{\link[stats]{gaussian}} and \code{\link[stats]{binomial}}.}
+\item{family}{The distribution family of the outcome variable. Supported options are:
+\code{\link[stats]{gaussian}} for continuous outcomes and \code{\link[stats]{binomial}} for binary outcomes.}
 
-\item{invlvls}{A numeric vector of values. Each specifies a confidence level of CI for estimators. If more than one values are specified, then multiple CIs are calculated.}
+\item{invlvls}{A numeric vector specifying the confidence levels (CIs) for the estimators. If more than
+one value is provided, multiple CIs will be calculated.}
 
-\item{weights}{A numeric vector of case weights. The length should be equal to the number of cases in 'samples'.}
+\item{weights}{A numeric vector of case weights. The length should match the number of cases in \code{svysmpl}.
+These weights are used for calculating the weighted sample mean.}
 }
 \value{
-A list. Each element contains the sample mean estimate and CIs for a subset or the whole data analysis.
+A list, where each element contains the sample mean estimate and CIs for a subset or the entire data. The list includes:
+- \code{est}: The sample mean estimate.
+- \code{se}: The standard error of the sample mean estimate.
+- \code{tCI}: The confidence intervals for the sample mean.
+- \code{sample_size}: The sample size for the subset or entire dataset.
+- \code{population_size}: The population size, if a population dataset is provided (applicable to finite population correction).
+The list is returned for each subset specified.
 }
 \description{
-Weighted or Unweighted Sample Mean
+This function estimates the sample mean of an outcome variable using either weighted or unweighted
+methods. It supports calculating the sample mean with finite population correction (FPC) when a
+population dataset is provided. The method can also compute confidence intervals (CIs) for the sample mean
+using the specified distribution family (Gaussian or Binomial).
+}
+\examples{
+## Simulate data with nonlinear association (setting 3).
+data = simulate(N = 3000, discretize = 3, setting = 3, seed = 123)
+population = data$population  # Population data (3000 cases)
+samples = data$samples        # Sample data (600 cases)
+ipw = 1 / samples$true_pi    # Compute inverse probability weights
+
+## Estimate the weighted sample mean with IPW
+IPW_sample_mean = uwt(svysmpl = samples, svyVar = "Y1", svypopu = population,
+                      subset = c("Z1 == 1 & Z2 == 1"), family = gaussian(),
+                      invlvls = c(0.95), weights = ipw)
+IPW_sample_mean
+
+## Estimate the unweighted sample mean
+unweighted_sample_mean = uwt(svysmpl = samples, svyVar = "Y1", svypopu = population,
+                              subset = NULL, family = gaussian(), invlvls = c(0.95), weights = NULL)
+unweighted_sample_mean
+
 }

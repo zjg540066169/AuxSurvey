@@ -24,98 +24,128 @@ auxsurvey(
 )
 }
 \arguments{
-\item{formula}{A string or formula for the specified formula for the outcome model. For non-model based methods(sample mean, raking, post-stratification), just include the outcome variable, such as "~Y". For model based methods (MRP, GAMP, LR), additional predictors can be specified as fixed effects term, such as "Y~X1+X2 + I(X^2)". For GAMP, smooth functions can be specified, such as "Y~X1 + s(X2, 10) + s(X3, by = X1)". Categorical variables are coded as dummy variables in model based methods.}
+\item{formula}{A string or formula specifying the outcome model. For non-model-based methods
+(e.g., sample mean, raking, post-stratification), only include the outcome variable (e.g., "~Y").
+For model-based methods (e.g., MRP, GAMP, linear regression), additional fixed effect predictors can
+be specified, such as "Y ~ X1 + X2 + I(X^2)". For GAMP, smooth functions can be specified as
+"Y ~ X1 + s(X2, 10) + s(X3, by = X1)". Categorical variables are automatically treated as dummy variables
+in model-based methods.}
 
-\item{auxiliary}{A string for the specified formula for the auxiliary variables. For sample mean and BART, just leave it as NULL. For raking, post-stratification, GAMP, use string for an additive model, such as "Z1 + Z2 + Z3". MRP specifies random effects for terms in this parameter, such as "Z1 + Z2 + Z3" or "Z1 + Z2:Z3".}
+\item{auxiliary}{A string specifying the formula for the auxiliary variables. For sample mean and
+BART, this should be \code{NULL}. For raking, post-stratification, and GAMP, this should be an additive model
+(e.g., "Z1 + Z2 + Z3"). For MRP, specify random effects for terms in this parameter, such as "Z1 + Z2 + Z3"
+or "Z1 + Z2:Z3".}
 
-\item{samples}{A dataframe or tibble contains all variables in 'formula' and 'auxiliary'. This dataframe is a subset of 'population'.}
+\item{samples}{A dataframe or tibble containing all variables specified in \code{formula} and \code{auxiliary}.
+This is typically a subset of the population.}
 
-\item{population}{A dataframe or tibble contains all variables in 'formula' and 'auxiliary'.}
+\item{population}{A dataframe or tibble containing all variables specified in \code{formula} and \code{auxiliary}.
+This is the entire population used for estimation.}
 
-\item{subset}{A character vector. Each element is a string representing a filtering condition to select subset of samples and population. Default is NULL. When this parameter is NULL, the analysis is only performed on the whole data. If subsets are specified, the estimates for the whole data will also be calculated.}
+\item{subset}{A character vector representing filtering conditions to select subsets of \code{samples} and \code{population}.
+Default is \code{NULL}, in which case the analysis is performed on the entire dataset. If subsets are specified,
+estimates for both the whole data and the subsets will be calculated.}
 
-\item{family}{The distribution family of outcome variable. Currently we only support \code{\link[stats]{gaussian}} and \code{\link[stats]{binomial}}.}
+\item{family}{The distribution family of the outcome variable. Supported options are:
+\code{\link[stats]{gaussian}} for continuous outcomes and \code{\link[stats]{binomial}} for binary outcomes.}
 
-\item{method}{A string specifying which model to use.}
+\item{method}{A string specifying the model to use. Options include "sample_mean", "rake", "postStratify",
+"MRP", "GAMP", "linear", and "BART".}
 
-\item{weights}{A numeric vector of case weights. The length should be equal to the number of cases in 'samples'.}
+\item{weights}{A numeric vector of case weights. The length should match the number of cases in \code{samples}.}
 
-\item{levels}{A numeric vector of values. Each specifies a confidence level of CI for estimators. If more than one values are specified, then multiple CIs are calculated.}
+\item{levels}{A numeric vector specifying the confidence levels for the confidence intervals (CIs).
+Multiple values can be specified to calculate multiple CIs.}
 
-\item{stan_verbose}{A logical scalar; if true, print all messages when running stan models. Default is false. This parameter only works for Bayesian models.}
+\item{stan_verbose}{A logical scalar; if \code{TRUE}, prints all messages when running Stan models. Default is \code{FALSE}.
+This parameter only applies to Bayesian models.}
 
-\item{show_plot}{A logical scalar; if true, show some diagnostic plots for stan models. Default is false. This parameter only works for Bayesian models.}
+\item{show_plot}{A logical scalar; if \code{TRUE}, shows diagnostic plots for Stan models. Default is \code{FALSE}.
+This parameter only applies to Bayesian models.}
 
-\item{nskip}{An integer to specify the number of burn-in iterations of each chain in MCMC for stan models. Default is 1000. This parameter only works for Bayesian models.}
+\item{nskip}{An integer specifying the number of burn-in iterations for each chain in MCMC for Stan models.
+Default is \code{1000}. This parameter only applies to Bayesian models.}
 
-\item{npost}{An integer to specify the number of posterior sampling iteration of each chain in MCMC for stan models. Default is 1000. This parameter only works for Bayesian models.}
+\item{npost}{An integer specifying the number of posterior sampling iterations for each chain in MCMC for Stan models.
+Default is \code{1000}. This parameter only applies to Bayesian models.}
 
-\item{nchain}{An integer to specify the number of MCMC chains for stan models. Default is 4. This parameter only works for Bayesian models.}
+\item{nchain}{An integer specifying the number of MCMC chains for Stan models. Default is \code{4}. This parameter
+only applies to Bayesian models.}
 
-\item{HPD_interval}{A logical scalar; if true, the calculated credible intervals for stan models are highest posterior density intervals. Otherwise the intervals are symmetric. Default is false. This parameter only works for Bayesian models.}
+\item{HPD_interval}{A logical scalar; if \code{TRUE}, calculates the highest posterior density (HPD) intervals for the
+CIs of Stan models. Default is \code{FALSE}, in which case symmetric intervals are calculated. This parameter only applies
+to Bayesian models.}
 
-\item{seed}{An integer. Random seed to set. Default is NULL.}
+\item{seed}{An integer specifying the random seed for reproducibility. Default is \code{NULL}.}
 }
 \value{
-A list. Each element contains the estimate and CIs for a subset or the whole data analysis.
+A list containing the sample mean estimates and CIs for the subset and/or the whole dataset.
+Each element in the list includes:
+- \code{estimate}: The point estimate of the sample mean.
+- \code{CI}: Confidence intervals for the sample mean.
+- Other elements for each confidence level specified in \code{levels}.
 }
 \description{
-Probability surveys often use auxiliary continuous data from administrative records, but the utility of this data is diminished when it is discretized for confidentiality.
+This function provides a user-friendly interface for various estimators in survey analysis
+when working with discretized auxiliary variables. Probability surveys often use continuous
+data from administrative records as auxiliary variables, but the utility of this data is
+diminished when discretized for confidentiality purposes. This package offers different estimators
+that handle discretized auxiliary variables effectively.
+}
+\details{
+The available estimators include:
+\itemize{
+\item Weighted or unweighted sample mean
+\item Weighted or unweighted raking
+\item Weighted or unweighted post-stratification
+\item Bayesian methods:
+\itemize{
+\item BART (Bayesian Additive Regression Trees)
+\item MRP (Multilevel Regression with Poststratification)
+\item GAMP (Generalized Additive Model of Response Propensity)
+\item Weighted linear regression
+}
+}
 
-This function provides a user-friendly interface for different estimators with the discretized auxiliary variables.
-
-The estimators includes (weighted) sample mean, (weighted) raking, (weighted) post-stratification, and four Bayesian methods: BART, MRP, GAMP(Generalized additive model of response propensity) and (weighted) linear regression. The three Bayesian models are based on 'rstan' and 'rstanarm'.
+These Bayesian models are implemented using the \strong{rstan} and \strong{rstanarm} packages.
 }
 \examples{
 \dontrun{
-## simulate data from the 'simulate' function, with nonlinear association setting 3.
-## The continuous variable X is discretized into categorical variable auX_3 with 3 categories,
-## and auX_10 with 10 categories.
+## Simulate data with nonlinear association (setting 3).
 data = simulate(N = 3000, discretize = c(3, 10), setting = 3, seed = 123)
-
-## The dataset consists of a continuous outcome Y, 3 binary variables Z1, Z2, Z3;
-## discretized variables auX_3 and auX_10.
-## Propensity scores true_pi and it log transformation logit_true_pi are calculated.
-population = data$population # get population, 3000 cases
-samples = data$samples # get samples, about 600 cases
-ipw = 1 / samples$true_pi # get the inverse probability weighting
-
-## True value
+population = data$population
+samples = data$samples
+ipw = 1 / samples$true_pi
 true_mean = mean(population$Y1)
 
-## IPW sample mean, with analysis on subset Z1 == 1 & Z2 == 1.
-IPW_sample_mean = auxsurvey("~Y1",  auxiliary = NULL, weights = ipw,
-                   samples = samples, population = population,
-                   subset = c("Z1 == 1 & Z2 == 1"), method = "sample_mean", levels = 0.95)
+## IPW Sample Mean
+IPW_sample_mean = auxsurvey("~Y1", auxiliary = NULL, weights = ipw,
+                            samples = samples, population = population,
+                            subset = c("Z1 == 1 & Z2 == 1"), method = "sample_mean",
+                            levels = 0.95)
 
-## rake, with analysis on subsets Z1 == 1 and Z1 == 1 & Z2 == 1.
-rake = auxsurvey("~Y1",  auxiliary = "Z1 + Z2 + Z3 + auX_10", samples = samples,
-         population = population, subset = c("Z1 == 1", "Z1 == 1 & Z2 == 1"),
-         method = "rake", levels = 0.95)
+## Raking
+rake = auxsurvey("~Y1", auxiliary = "Z1 + Z2 + Z3 + auX_10", samples = samples,
+                 population = population, subset = c("Z1 == 1", "Z1 == 1 & Z2 == 1"),
+                 method = "rake", levels = 0.95)
 
-## IPW post-stratification, no subset analysis.
-IPW_postStratify3 = auxsurvey("~Y1",  auxiliary = "Z1 + Z2 + Z3 + auX_3", weights = ipw,
-                     samples = samples, population = population,
-                     method = "postStratify", levels = 0.95)
+## MRP
+MRP = auxsurvey("Y1 ~ 1 + Z1", auxiliary = "Z2 + Z3:auX_10", samples = samples,
+                population = population, subset = c("Z1 == 1", "Z1 == 1 & Z2 == 1"),
+                method = "MRP", levels = 0.95, nskip = 4000, npost = 4000,
+                nchain = 1, stan_verbose = FALSE, HPD_interval = TRUE)
 
-## MRP, with analysis on subsets Z1 == 1, Z1 == 1 & Z2 == 1, Z1 == 1 & Z2 == 1 & Z3 == 1.
-MRP = auxsurvey("Y1~1 + Z1",  auxiliary = "Z2 + Z3:auX_10", samples = samples,
-        population = population,
-        subset = c("Z1 == 1", "Z1 == 1 & Z2 == 1", "Z1 == 1 & Z2 == 1 & Z3 == 1"),
-        method = "MRP", levels = 0.95, nskip = 4000, npost = 4000,
-        nchain = 1, stan_verbose = F, HPD_interval = T)
+## GAMP
+GAMP = auxsurvey("Y1 ~ 1 + Z1 + Z2 + Z3", auxiliary = "s(auX_10) + s(logit_true_pi, by = Z1)",
+                 samples = samples, population = population, method = "GAMP",
+                 levels = 0.95, nskip = 4000, npost = 4000, nchain = 1,
+                 stan_verbose = FALSE, HPD_interval = TRUE)
 
-## GAMP, no subset analysis.
-GAMP = auxsurvey("Y1~1 + Z1 + Z2 + Z3",  auxiliary = "s(auX_10) + s(logit_true_pi, by = Z1)",
-          samples = samples, population = population, subset = NULL, method = "GAMP",
-         levels = 0.95, nskip = 4000, npost = 4000, nchain = 1, stan_verbose = F, HPD_interval = T)
-
-
-## BART with analysis on subsets Z1 == 1, Z1 == 1 & Z2 == 1, Z1 == 1 & Z2 == 1 & Z3 == 1.
-MRP = auxsurvey("Y1~1 + Z1 + Z2 + Z3 + auX_10",  auxiliary = NULL, samples = samples,
-        population = population,
-        subset = c("Z1 == 1", "Z1 == 1 & Z2 == 1", "Z1 == 1 & Z2 == 1 & Z3 == 1"),
-        method = "BART", levels = 0.95, nskip = 4000, npost = 4000,
-        nchain = 1, stan_verbose = F, HPD_interval = T)
+## BART
+BART = auxsurvey("Y1 ~ Z1 + Z2 + Z3 + auX_10", auxiliary = NULL, samples = samples,
+                 population = population, method = "BART", levels = 0.95,
+                 nskip = 4000, npost = 4000, nchain = 1, stan_verbose = FALSE,
+                 HPD_interval = TRUE)
 }
+
 }

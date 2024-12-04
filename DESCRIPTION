@@ -1,6 +1,7 @@
 Package: AuxSurvey
 Title: Survey Analysis with Auxiliary Discretized Variables
-Version: 0.0.0.9000
+Version: 0.9
+Author: Jungang Zou [aut, cre], Yutao Liu [aut], Sharifa Williams [aut], Qixuan Chen [aut]
 Authors@R: 
     c(person(given = "Jungang",
              family = "Zou",
@@ -8,18 +9,17 @@ Authors@R:
              email = "jungang.zou@gmail.com"),
       person(given = "Yutao",
              family = "Liu",
-             role = c("aut"),
-             email = "yl3050@caa.Columbia.edu"
+             role = c("aut")
              ),
       person(given = "Sharifa",
              family = "Williams",
-             role = c("aut"),
-             email = "sharifa.williams@rutgers.edu"),  
+             role = c("aut")),  
       person(given = "Qixuan",
              family = "Chen",
-             role = c("aut"),
-             email = "qc2138@cumc.columbia.edu")
+             role = c("aut")
+             )
     )
+Maintainer: Jungang Zou <jungang.zou@gmail.com>
 Description: Probability surveys often use auxiliary continuous data from administrative records, but the utility of this data is diminished when it is discretized for confidentiality. We provide a set of survey estimators to make full use of information from the discretized variables.
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
