@@ -19,7 +19,8 @@ auxsurvey(
   nskip = 1000,
   npost = 1000,
   nchain = 4,
-  HPD_interval = FALSE
+  HPD_interval = FALSE,
+  seed = NULL
 )
 }
 \arguments{
@@ -52,6 +53,8 @@ auxsurvey(
 \item{nchain}{An integer to specify the number of MCMC chains for stan models. Default is 4. This parameter only works for Bayesian models.}
 
 \item{HPD_interval}{A logical scalar; if true, the calculated credible intervals for stan models are highest posterior density intervals. Otherwise the intervals are symmetric. Default is false. This parameter only works for Bayesian models.}
+
+\item{seed}{An integer. Random seed to set. Default is NULL.}
 }
 \value{
 A list. Each element contains the estimate and CIs for a subset or the whole data analysis.

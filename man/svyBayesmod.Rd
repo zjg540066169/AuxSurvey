@@ -20,7 +20,8 @@ svyBayesmod(
   doFigure = FALSE,
   useTrueSample = F,
   stan_verbose = F,
-  shortest_CI = F
+  shortest_CI = F,
+  seed = NULL
 )
 }
 \arguments{
@@ -55,6 +56,8 @@ svyBayesmod(
 \item{stan_verbose}{A logical to indicate if print MCMC information in stan}
 
 \item{shortest_CI}{A logical scalar; if true, the calculated credible intervals for stan models are highest posterior density intervals. Otherwise the intervals are symmetric. Default is false.}
+
+\item{seed}{An integer. Random seed to set. Default is NULL.}
 }
 \value{
 A list. Each element contains the Bayesian estimate and CIs for a subset or the whole data analysis.

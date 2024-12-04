@@ -5,7 +5,7 @@ Authors@R:
     c(person(given = "Jungang",
              family = "Zou",
              role = c("aut", "cre"),
-             email = "jz3183@cumc.columbia.edu"),
+             email = "jungang.zou@gmail.com"),
       person(given = "Yutao",
              family = "Liu",
              role = c("aut"),
@@ -23,7 +23,7 @@ Authors@R:
 Description: Probability surveys often use auxiliary continuous data from administrative records, but the utility of this data is diminished when it is discretized for confidentiality. We provide a set of survey estimators to make full use of information from the discretized variables.
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.2
 Depends: 
     mgcv,
     rstanarm,
