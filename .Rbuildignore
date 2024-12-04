@@ -5,3 +5,5 @@
 ^\\.DS_Store$
 ^\\.git$
 .github/workflows/rhub.yaml
+^doc$
+^Meta$
