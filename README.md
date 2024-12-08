@@ -1,6 +1,8 @@
 # AuxSurvey
   <!-- badges: start -->
   [![R-CMD-check](https://github.com/zjg540066169/AuxSurvey/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/zjg540066169/AuxSurvey/actions/workflows/R-CMD-check.yaml)
+  [![version](https://img.shields.io/badge/version-0.9-green.svg)](https://github.com/zjg540066169/AuxSurvey)
+  ![Language](https://img.shields.io/github/languages/top/zjg540066169/AuxSurvey.svg)
   <!-- badges: end -->
 
 Probability surveys often use auxiliary continuous data from administrative records, but the utility of this data is diminished when it is discretized for confidentiality. This R package provides a user-friendly function for different survey estimators with the discretized auxiliary variables.
