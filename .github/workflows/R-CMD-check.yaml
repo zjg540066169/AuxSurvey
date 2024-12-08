@@ -1,5 +1,4 @@
 # Workflow derived from https://github.com/r-lib/actions/tree/v2/examples
-# Need help debugging build failures? Start at https://github.com/r-lib/actions#where-to-find-help
 on:
   push:
     branches: [main, master]
@@ -40,11 +39,11 @@ jobs:
           http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
 
-      - uses: r-lib/actions/setup-r-dependencies@v2
-        with:
-          extra-packages: any::rcmdcheck
-          needs: check
-
+      - name: Install R dependencies manually
+        run: |
+          Rscript -e "install.packages(c('rcmdcheck', 'remotes'), repos = 'https://cloud.r-project.org')"
+          Rscript -e "remotes::install_deps(dependencies = TRUE)"
+          
       - uses: r-lib/actions/check-r-package@v2
         with:
           upload-snapshots: true
