@@ -36,7 +36,7 @@ You can install the **AuxSurvey** package directly from GitHub using **devtools*
 
 ```{r}
 require("devtools")
-install_github("https://github.com/zjg540066169/AuxSurvey")
+devtools::install_github("https://github.com/zjg540066169/AuxSurvey")
 library(AuxSurvey)
 ```
 

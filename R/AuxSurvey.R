@@ -513,7 +513,7 @@ postStr_wt <- function(svysmpl, svypopu, auxVars, svyVar, subset = NULL, family 
 #' \donttest{
 #' ## Example usage with survey data:
 #' ## Simulate sample and population data
-#' simulate(N = 3000, discretize = 3, setting = 3, seed = 123)
+#' data = simulate(N = 3000, discretize = 3, setting = 3, seed = 123)
 #' population = data$population  # Get population data
 #' samples = data$samples        # Get sample data
 #' ipw = 1 / samples$true_pi    # Compute inverse probability weights
