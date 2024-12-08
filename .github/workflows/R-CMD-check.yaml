@@ -38,18 +38,23 @@ jobs:
           http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
 
-      # Step 1: Install rcmdcheck explicitly
+      # Ensure rcmdcheck is installed
       - name: Install rcmdcheck
         run: |
           Rscript -e "install.packages('rcmdcheck', repos = 'https://cloud.r-project.org')"
 
-      # Step 2: Install package dependencies
-      - name: Install package dependencies
-        run: |
-          Rscript -e "install.packages('remotes', repos = 'https://cloud.r-project.org')"
-          Rscript -e "remotes::install_deps(dependencies = TRUE)"
+      # Install additional dependencies
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::rcmdcheck
 
-      # Step 3: Run R CMD check
+      # Debugging step
+      - name: Debug installed packages
+        run: |
+          Rscript -e "installed.packages()"
+          Rscript -e "if (!requireNamespace('rcmdcheck', quietly = TRUE)) stop('rcmdcheck not installed')"
+
+      # Run R CMD check
       - uses: r-lib/actions/check-r-package@v2
         with:
           upload-snapshots: true
