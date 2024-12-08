@@ -727,7 +727,7 @@ svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NU
 #' @examples
 #' \donttest{
 #' ## Simulate data with nonlinear association (setting 3).
-#' data = simulate(N = 3000, discretize = c(3, 10), setting = 3, seed = 123)
+#' data = simulate(N = 3000, discretize = 10, setting = 3, seed = 123)
 #' population = data$population
 #' samples = data$samples
 #' ipw = 1 / samples$true_pi
@@ -759,8 +759,8 @@ svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NU
 #' ## BART
 #' BART = auxsurvey("Y1 ~ Z1 + Z2 + Z3 + auX_10", auxiliary = NULL, samples = samples,
 #'                  population = population, method = "BART", levels = 0.95,
-#'                  nskip = 4000, npost = 4000, nchain = 1, stan_verbose = FALSE,
-#'                  HPD_interval = TRUE)
+#'                  nskip = 4000, npost = 4000, nchain = 1, HPD_interval = TRUE)
+#'
 #' }
 #'
 #' @rawNamespace import(stats, except = filter)
@@ -966,8 +966,6 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
     }
     if(family$family == "binomial"){
       X_train = stats::model.matrix(as.formula(paste0("~", stringr::str_split_i(as.character(formula), "~", 2))), samples[, covariates])
-      #X_train = samples[, covariates]
-      #print(colnames(X_train))
       y_train = dplyr::pull(samples, svyVar)
       model <- BART::pbart(X_train, y_train, ndpost = npost, nskip = nskip, rm.const=FALSE)
     }
@@ -981,11 +979,8 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
     infr = sapply(subset, function(s){
       svypopu1 = dplyr::filter(population, eval(parse(text = s)))[, covariates]
       svysmpl1 = dplyr::filter(samples, eval(parse(text = s)))[, covariates]
-      #print(svypopu1)
       svypopu1 = stats::model.matrix(as.formula(paste0("~", stringr::str_split_i(as.character(formula), "~", 2))), svypopu1)
       svysmpl1 = stats::model.matrix(as.formula(paste0("~", stringr::str_split_i(as.character(formula), "~", 2))), svysmpl1)
-      #print(svypopu1)
-      #print(colnames(svypopu1))
       yhats_pop <- predict(model, svypopu1) # npost, non-sample_size
       yhats_sam <- predict(model, svysmpl1)
       if(family$family == "binomial"){

@@ -112,7 +112,7 @@ These Bayesian models are implemented using the \strong{rstan} and \strong{rstan
 \examples{
 \donttest{
 ## Simulate data with nonlinear association (setting 3).
-data = simulate(N = 3000, discretize = c(3, 10), setting = 3, seed = 123)
+data = simulate(N = 3000, discretize = 10, setting = 3, seed = 123)
 population = data$population
 samples = data$samples
 ipw = 1 / samples$true_pi
@@ -144,8 +144,8 @@ GAMP = auxsurvey("Y1 ~ 1 + Z1 + Z2 + Z3", auxiliary = "s(auX_10) + s(logit_true_
 ## BART
 BART = auxsurvey("Y1 ~ Z1 + Z2 + Z3 + auX_10", auxiliary = NULL, samples = samples,
                  population = population, method = "BART", levels = 0.95,
-                 nskip = 4000, npost = 4000, nchain = 1, stan_verbose = FALSE,
-                 HPD_interval = TRUE)
+                 nskip = 4000, npost = 4000, nchain = 1, HPD_interval = TRUE)
+
 }
 
 }

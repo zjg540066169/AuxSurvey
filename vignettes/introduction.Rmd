@@ -35,8 +35,8 @@ These methods are designed for use with discretized auxiliary variables in surve
 You can install the **AuxSurvey** package directly from GitHub using **devtools** as it is not available on CRAN at the moment. Please ensure that the `rstan` and `rstanarm` packages are installed on your system before proceeding.
 
 ```{r}
-#require("devtools")
-#install_github("https://github.com/zjg540066169/AuxSurvey")
+require("devtools")
+install_github("https://github.com/zjg540066169/AuxSurvey")
 library(AuxSurvey)
 ```
 
