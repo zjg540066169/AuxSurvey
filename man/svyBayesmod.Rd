@@ -18,9 +18,9 @@ svyBayesmod(
   nchain = 4,
   printmod = TRUE,
   doFigure = FALSE,
-  useTrueSample = F,
-  stan_verbose = F,
-  HPD_CI = F,
+  useTrueSample = FALSE,
+  stan_verbose = FALSE,
+  HPD_CI = FALSE,
   seed = NULL
 )
 }
@@ -83,7 +83,7 @@ weighted or unweighted models, for both sample and population data. The function
 posterior estimation, confidence intervals (CIs), and MCMC diagnostics.
 }
 \examples{
-\dontrun{
+\donttest{
 ## Example usage with survey data:
 ## Simulate sample and population data
 simulate(N = 3000, discretize = 3, setting = 3, seed = 123)
@@ -100,7 +100,7 @@ bayes_model = svyBayesmod(svysmpl = samples, svypopu = population,
                           outcome_formula = outcome_formula,
                           BayesFun = BayesFun, weights = ipw,
                           family = gaussian(), nskip = 2000, npost = 2000,
-                          nchain = 2, printmod = TRUE, invlvls = 0.95, stan_verbose = T)
+                          nchain = 2, printmod = TRUE, invlvls = 0.95, stan_verbose = TRUE)
 }
 
 }

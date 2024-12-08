@@ -110,7 +110,7 @@ The available estimators include:
 These Bayesian models are implemented using the \strong{rstan} and \strong{rstanarm} packages.
 }
 \examples{
-\dontrun{
+\donttest{
 ## Simulate data with nonlinear association (setting 3).
 data = simulate(N = 3000, discretize = c(3, 10), setting = 3, seed = 123)
 population = data$population
