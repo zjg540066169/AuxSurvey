@@ -181,7 +181,7 @@ uwt <- function(svysmpl, svyVar, svypopu = NULL, subset = NULL, family = gaussia
       des <- survey::svydesign(ids = ~1, weights = ~weights, data = svysmpl)
     }
   }else{
-    cat("population parameter is specified, so the finite population correction will be calculated for sample mean.\n")
+    message("population parameter is specified, so the finite population correction will be calculated for sample mean.\n")
     svysmpl$fpc <- nrow(svypopu)
     if(is.null(weights))
       des <- survey::svydesign(ids = ~1, weights = ~1, data = svysmpl, fpc = ~fpc)
@@ -452,7 +452,6 @@ postStr_wt <- function(svysmpl, svypopu, auxVars, svyVar, subset = NULL, family 
                     parm = svyVar, simplify = FALSE)
       tCI = do.call("cbind", tCI)
     }
-    #print(s)
     # get estmates and standard error
     infr <- cbind(est = PSest[svyVar], se = sqrt(diag(vcov(PSest))), tCI, sample_size = survey::degf(PSobj) + 1, population_size = nrow(dplyr::filter(svypopu, eval(parse(text = s)))))
     if(is.null(weights))
@@ -511,7 +510,7 @@ postStr_wt <- function(svysmpl, svypopu, auxVars, svyVar, subset = NULL, family 
 #'         - Other elements based on the specified confidence levels in `invlvls`.
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' ## Example usage with survey data:
 #' ## Simulate sample and population data
 #' simulate(N = 3000, discretize = 3, setting = 3, seed = 123)
@@ -726,7 +725,7 @@ svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NU
 #'         - Other elements for each confidence level specified in `levels`.
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' ## Simulate data with nonlinear association (setting 3).
 #' data = simulate(N = 3000, discretize = c(3, 10), setting = 3, seed = 123)
 #' population = data$population
@@ -845,7 +844,7 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
     }else{
       outcome_formula = paste(paste0(svyVar, "~", paste0(covariates, collapse = "+")), paste0("(1|", auxiliary, ")", collapse = "+"), sep= "+")
     }
-    cat("The formula for the MRP model is ", outcome_formula, "\n")
+    message("The formula for the MRP model is ", outcome_formula, "\n")
     MRP_est = svyBayesmod(samples, population, outcome_formula, "stan_glmer", subset, family, levels, weights, nskip, npost, nchain, printmod = TRUE, doFigure = show_plot, useTrueSample = FALSE, stan_verbose = stan_verbose, HPD_CI = HPD_interval)
     #return(MRP_est)
     MRP_est =  lapply(MRP_est, function(est){
@@ -887,10 +886,10 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
     }
     if(length(auxiliary_random) != 0){
       outcome_formula = c(outcome_formula, paste0("~", paste0("(1|", auxiliary_random, ")", collapse = "+")))
-      cat("The formula for the GAMP model is ", paste0(outcome_formula[1], str_replace(outcome_formula[2], "~", "+"), collapse = ""), "\n")
+      message("The formula for the GAMP model is ", paste0(outcome_formula[1], str_replace(outcome_formula[2], "~", "+"), collapse = ""), "\n")
     }else{
       outcome_formula = c(outcome_formula, NULL)
-      cat("The formula for the GAMP model is ", outcome_formula[1], "\n")
+      message("The formula for the GAMP model is ", outcome_formula[1], "\n")
     }
 
     #outcome_formula = paste(formula, paste0(str_remove_all(auxiliary, "~"), collapse = "+"), paste0("(1|", auxiliary_random, ")", collapse = "+"),  sep = "+")
@@ -927,11 +926,11 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
     population = dplyr::mutate_at(population, auxiliary_random, as.factor)
     if(length(auxiliary_random) != 0){
       outcome_formula = c(outcome_formula, paste0("~", paste0("(1|", auxiliary_random, ")", collapse = "+")))
-      cat("The formula for the linear model is ", paste0(outcome_formula[1], str_replace(outcome_formula[2], "~", "+"), collapse = ""), "\n")
+      message("The formula for the linear model is ", paste0(outcome_formula[1], str_replace(outcome_formula[2], "~", "+"), collapse = ""), "\n")
       Linear_est = svyBayesmod(samples, population, outcome_formula, "stan_glmer", family, levels, weights, nskip, npost, nchain, printmod = TRUE, doFigure = FALSE, useTrueSample = TRUE, stan_verbose = stan_verbose, HPD_CI = HPD_interval)
     }else{
       outcome_formula = c(outcome_formula, NULL)
-      cat("The formula for the linear model is ", outcome_formula, "\n")
+      message("The formula for the linear model is ", outcome_formula, "\n")
       Linear_est = svyBayesmod(samples, population, outcome_formula, "stan_glm", subset, family, levels, weights, nskip, npost, nchain, printmod = TRUE, doFigure = FALSE, useTrueSample = TRUE, stan_verbose = stan_verbose, HPD_CI = HPD_interval)
     }
 
