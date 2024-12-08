@@ -40,6 +40,11 @@ jobs:
           use-public-rspm: true
 
       # Optional: Update pak metadata (stability fix)
+      - name: Install pak
+        run: |
+          Rscript -e "install.packages('pak', repos = 'https://r-lib.github.io/p/pak/dev/')"
+
+      # Step 2: Update metadata using pak
       - name: Update pak metadata
         run: |
           Rscript -e "pak::pkgcache::meta_update()"
