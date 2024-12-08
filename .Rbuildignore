@@ -7,3 +7,4 @@
 .github/workflows/rhub.yaml
 ^doc$
 ^Meta$
+^\.github$
