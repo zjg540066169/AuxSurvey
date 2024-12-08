@@ -39,15 +39,10 @@ jobs:
           http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
 
-      # Optional: Update pak metadata (stability fix)
-      - name: Install pak
+      - name: Install R dependencies manually
         run: |
-          Rscript -e "install.packages('pak', repos = 'https://r-lib.github.io/p/pak/dev/')"
-
-      # Step 2: Update metadata using pak
-      - name: Update pak metadata
-        run: |
-          Rscript -e "pak::pkgcache::meta_update()"
+          Rscript -e "install.packages(c('rcmdcheck', 'remotes'), repos = 'https://cloud.r-project.org')"
+          Rscript -e "remotes::install_deps(dependencies = TRUE)"
           
       - uses: r-lib/actions/check-r-package@v2
         with:
