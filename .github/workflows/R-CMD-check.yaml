@@ -1,4 +1,3 @@
-# Workflow derived from https://github.com/r-lib/actions/tree/v2/examples
 on:
   push:
     branches: [main, master]
@@ -39,11 +38,23 @@ jobs:
           http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
 
-      - name: Install R dependencies manually
+      # Ensure rcmdcheck is installed
+      - name: Install rcmdcheck
         run: |
-          Rscript -e "install.packages(c('rcmdcheck', 'remotes'), repos = 'https://cloud.r-project.org')"
-          Rscript -e "remotes::install_deps(dependencies = TRUE)"
-          
+          Rscript -e "install.packages('rcmdcheck', repos = 'https://cloud.r-project.org')"
+
+      # Install additional dependencies
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::rcmdcheck
+
+      # Debugging step
+      - name: Debug installed packages
+        run: |
+          Rscript -e "installed.packages()"
+          Rscript -e "if (!requireNamespace('rcmdcheck', quietly = TRUE)) stop('rcmdcheck not installed')"
+
+      # Run R CMD check
       - uses: r-lib/actions/check-r-package@v2
         with:
           upload-snapshots: true
