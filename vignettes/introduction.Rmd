@@ -42,6 +42,8 @@ The covariates in the dataset include:
 - Propensity scores: `true_pi` (true), `logit_true_pi`, `estimated_pi` (estimated using BART)
 
 ```{r}
+library(AuxSurvey)
+
 # Generate data
 data = simulate(N = 3000, discretize = c(3, 5, 10), setting = 1, seed = 123)
 population = data$population  # Full population data (3000 cases)
