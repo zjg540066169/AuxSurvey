@@ -91,8 +91,8 @@ simulate = function(N = 3000, discretize =c(3, 5, 10), setting = c(1,2,3), seed 
   )
 
   U = runif(N)
-  population$inclusion = ifelse(pi > U, T, F)
-  samples = population[population$inclusion == T,]
+  population$inclusion = ifelse(pi > U, TRUE, FALSE)
+  samples = population[population$inclusion == TRUE,]
   colnames(population) = c("id", "Z1", "Z2", "Z3", "X", "W", colnames(auX), colnames(auW), "Y1", "Y2", "true_pi", "logit_true_pi", "inclusion")
   colnames(samples) = c("id", "Z1", "Z2", "Z3", "X", "W", colnames(auX), colnames(auW), "Y1", "Y2", "true_pi", "logit_true_pi", "inclusion")
 
@@ -194,7 +194,7 @@ uwt <- function(svysmpl, svyVar, svypopu = NULL, subset = NULL, family = gaussia
 
     if(family$family == "binomial"){
       suppressWarnings(desc <- sapply(invlvls, function(lv) paste0('~', svyVar) %>% as.formula() %>%
-                                        survey::svyciprop(des, method = "logit", level = lv), simplify = F))
+                                        survey::svyciprop(des, method = "logit", level = lv), simplify = FALSE))
       tCI <- lapply(desc, function(i){
         ci = confint(i, df = survey::degf(des), parm = svyVar)
         colnames(ci) = stringr::str_replace(colnames(ci), "%", " %")
@@ -206,7 +206,7 @@ uwt <- function(svysmpl, svyVar, svypopu = NULL, subset = NULL, family = gaussia
     }
     if(family$family == "gaussian"){
       desc <- paste0('~', svyVar) %>% as.formula() %>% survey::svymean(des)
-      tCI <- sapply(invlvls, confint, object = desc, parm = svyVar, simplify = F)
+      tCI <- sapply(invlvls, confint, object = desc, parm = svyVar, simplify = FALSE)
       tCI = do.call("cbind", tCI)
     }
 
@@ -222,7 +222,7 @@ uwt <- function(svysmpl, svyVar, svypopu = NULL, subset = NULL, family = gaussia
       rownames(infr) = "Weighted-sample_mean"
     }
     infr
-  }, simplify = F)
+  }, simplify = FALSE)
   names(infr)[1] = "All"
   if(length(infr) == 1)
     return(infr[[1]])
@@ -314,7 +314,7 @@ rake_wt <- function(svysmpl, svypopu, auxVars, svyVar, subset = NULL, family = g
     rakingobj = subset(rakingobj, eval(parse(text = s)))
     if(family$family == "binomial"){
       suppressWarnings(rakest <- sapply(invlvls, function(lv) paste0('~', svyVar) %>% as.formula() %>%
-                                          survey::svyciprop(rakingobj, method = "logit", level = lv), simplify = F))
+                                          survey::svyciprop(rakingobj, method = "logit", level = lv), simplify = FALSE))
       tCI <- lapply(rakest, function(i){
         ci = confint(i, df = survey::degf(rakingobj), parm = svyVar)
         colnames(ci) = stringr::str_replace(colnames(ci), "%", " %")
@@ -327,7 +327,7 @@ rake_wt <- function(svysmpl, svypopu, auxVars, svyVar, subset = NULL, family = g
       rakest <- paste0('~', svyVar) %>% as.formula() %>%
         survey::svymean(rakingobj)
       tCI <- sapply(invlvls, confint, object = rakest, df = survey::degf(rakingobj),
-                    parm = svyVar, simplify = F)
+                    parm = svyVar, simplify = FALSE)
       tCI = do.call("cbind", tCI)
     }
     infr <- cbind(est = rakest[svyVar], se = sqrt(diag(vcov(rakest))), tCI, sample_size = survey::degf(rakingobj) + 1, population_size = nrow(dplyr::filter(svypopu, eval(parse(text = s)))))
@@ -337,7 +337,7 @@ rake_wt <- function(svysmpl, svypopu, auxVars, svyVar, subset = NULL, family = g
       rownames(infr) = "Weighted-rake"
     }
     return(infr)
-  }, simplify = F)
+  }, simplify = FALSE)
   names(infr)[1] = "All"
   if(length(infr) == 1)
     return(infr[[1]])
@@ -430,14 +430,14 @@ postStr_wt <- function(svysmpl, svypopu, auxVars, svyVar, subset = NULL, family 
 
     # make auxVar as a readable formula, for example, if auxVar = c(Z1, Z2, Z3), the result formula is ~Z1 + Z2 + Z3
     PSobj = subset(PSobj, eval(parse(text = s)))
-    #svytable(fmla, PSobj, round = T)
+    #svytable(fmla, PSobj, round = TRUE)
 
     # get estimates and confidence intervals
     # this function allows users specify multiple confidence levels, such as invlvls = c(0.95, 0.8)
     # so sapply function will calculate every confidence intervals separately
     if(family$family == "binomial"){
       suppressWarnings(PSest <- sapply(invlvls, function(lv) paste0('~', svyVar) %>% as.formula() %>%
-                                         survey::svyciprop(PSobj, method = "logit", level = lv), simplify = F))
+                                         survey::svyciprop(PSobj, method = "logit", level = lv), simplify = FALSE))
       tCI <- lapply(PSest, function(i){
         ci = confint(i, df = survey::degf(PSobj), parm = svyVar)
         colnames(ci) = str_replace(colnames(ci), "%", " %")
@@ -449,7 +449,7 @@ postStr_wt <- function(svysmpl, svypopu, auxVars, svyVar, subset = NULL, family 
     if(family$family == "gaussian"){
       PSest <- paste0('~', svyVar) %>% as.formula() %>% survey::svymean(PSobj)
       tCI <- sapply(invlvls, confint, object = PSest, df = survey::degf(PSobj),
-                    parm = svyVar, simplify = F)
+                    parm = svyVar, simplify = FALSE)
       tCI = do.call("cbind", tCI)
     }
     #print(s)
@@ -461,7 +461,7 @@ postStr_wt <- function(svysmpl, svypopu, auxVars, svyVar, subset = NULL, family 
       rownames(infr) = "Weighted-postStratify"
     }
     return(infr)
-  }, simplify = F)
+  }, simplify = FALSE)
   names(infr)[1] = "All"
   if(length(infr) == 1)
     return(infr[[1]])
@@ -528,7 +528,7 @@ postStr_wt <- function(svysmpl, svypopu, auxVars, svyVar, subset = NULL, family 
 #'                           outcome_formula = outcome_formula,
 #'                           BayesFun = BayesFun, weights = ipw,
 #'                           family = gaussian(), nskip = 2000, npost = 2000,
-#'                           nchain = 2, printmod = TRUE, invlvls = 0.95, stan_verbose = T)
+#'                           nchain = 2, printmod = TRUE, invlvls = 0.95, stan_verbose = TRUE)
 #' }
 #'
 #' @rawNamespace import(stats, except = filter)
@@ -540,7 +540,7 @@ postStr_wt <- function(svysmpl, svypopu, auxVars, svyVar, subset = NULL, family 
 #'
 #' @export
 
-svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NULL, family = gaussian(), invlvls, weights = NULL, nskip = 1000, npost = 1000, nchain = 4, printmod = TRUE, doFigure = FALSE, useTrueSample = F, stan_verbose = F, HPD_CI = F, seed = NULL) {
+svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NULL, family = gaussian(), invlvls, weights = NULL, nskip = 1000, npost = 1000, nchain = 4, printmod = TRUE, doFigure = FALSE, useTrueSample = FALSE, stan_verbose = FALSE, HPD_CI = FALSE, seed = NULL) {
   if (!is.null(seed))
     set.seed(seed)
   #print(outcome_formula)
@@ -597,7 +597,7 @@ svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NU
     ppcFig <- gridExtra::grid.arrange(ppcFig, p4, ncol = 1)
     ppcFig
   }
-  if(useTrueSample == F){
+  if(useTrueSample == FALSE){
     infr = sapply(subset, function(s){
       #print(s)
       svypopu1 = dplyr::filter(svypopu, eval(parse(text = s)))
@@ -608,19 +608,19 @@ svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NU
       tCI = sapply(invlvls, function(level){
         if(HPD_CI){
           class(post_est) <- 'mcmc'
-          ci = coda::HPDinterval(post_est, probs = level, names = T)
+          ci = coda::HPDinterval(post_est, probs = level, names = TRUE)
           names(ci) = paste(((1 - level)/2 * c(1, -1) + c(0, 1)) * 100, "%")
         }else{
           ci = ((1 - level)/2 * c(1, -1) + c(0, 1))
-          ci = quantile(post_est, probs = ci, names = T)
+          ci = quantile(post_est, probs = ci, names = TRUE)
           names(ci) = str_replace(names(ci), "%", " %")
         }
 
         ci
-      }, simplify = F)
+      }, simplify = FALSE)
       tCI = do.call("c", tCI)
       infr <- rbind(c(post_mean_est = mean(post_est), post_median_est = median(post_est), se = sd(post_est), tCI, sample_size = nrow(dplyr::filter(svysmpl, eval(parse(text = s)))), population_size = nrow(svypopu1)))
-    }, simplify = F)
+    }, simplify = FALSE)
     names(infr)[1] = "All"
     return(infr)
   }else{
@@ -639,20 +639,20 @@ svyBayesmod <- function(svysmpl, svypopu, outcome_formula, BayesFun, subset = NU
         #confint(post_est, level = 0.95)
         if(HPD_CI){
           class(post_est) <- 'mcmc'
-          ci = coda::HPDinterval(post_est, prob = level, names = T)
+          ci = coda::HPDinterval(post_est, prob = level, names = TRUE)
           names(ci) = paste(((1 - level)/2 * c(1, -1) + c(0, 1)) * 100, "%")
         }else{
           ci = ((1 - level)/2 * c(1, -1) + c(0, 1))
-          ci = quantile(post_est, probs = ci, names = T)
+          ci = quantile(post_est, probs = ci, names = TRUE)
           names(ci) = str_replace(names(ci), "%", " %")
         }
         ci
-      }, simplify = F)
+      }, simplify = FALSE)
 
       tCI = do.call("c", tCI)
       infr <- rbind(c(post_mean_est = mean(post_est), post_median_est = median(post_est), se = sd(post_est), tCI, sample_size = nrow(svysmpl1), population_size = nrow(svypopu1)))
       return(infr)
-    }, simplify = F)
+    }, simplify = FALSE)
     names(infr)[1] = "All"
     return(infr)
   }
@@ -796,8 +796,6 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
     stop(paste0("unidentified variables: ", paste0(setdiff(union(all.vars(as.formula(auxiliary)), all.vars(as.formula(formula))), colnames(samples)), collapse = ", "), collapse = ", "))
   }
 
-  #auxiliary = str_trim(str_split(auxiliary, "\\+", simplify = T))
-  #auxiliary = str_remove_all()
   method = match.arg(method)
   # if(is.null(propensity_score))
   #   weights = NULL
@@ -808,17 +806,17 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
     return(uwt(samples, svyVar, population, subset, family, levels, weights))
   }
   if(method == "rake"){
-    covariates = stringr::str_trim(stringr::str_split(stringr::str_split_i(as.character(formula), "~", 2), "\\+", simplify = T))
+    covariates = stringr::str_trim(stringr::str_split(stringr::str_split_i(as.character(formula), "~", 2), "\\+", simplify = TRUE))
     covariates = setdiff(covariates, svyVar)
     if("." %in% covariates){
       covariates = setdiff(names(samples), svyVar)
     }
-    auxiliary = stringr::str_trim(stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T))
+    auxiliary = stringr::str_trim(stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = TRUE))
     auxiliary = auxiliary[!is.na(auxiliary) & auxiliary != ""]
     return(rake_wt(samples, population, auxiliary, svyVar, subset, family = family, levels, weights, maxiter = 50))
   }
   if(method == "postStratify"){
-    covariates = stringr::str_trim(stringr::str_split(stringr::str_split_i(as.character(formula), "~", 2), "\\+", simplify = T))
+    covariates = stringr::str_trim(stringr::str_split(stringr::str_split_i(as.character(formula), "~", 2), "\\+", simplify = TRUE))
     covariates = setdiff(covariates, svyVar)
     if("." %in% covariates){
       covariates = setdiff(names(samples), svyVar)
@@ -831,7 +829,7 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
     if(is.null(nskip)) nskip = 1000
     if(is.null(npost)) npost = 1000
     if(is.null(nchain)) nchain = 4
-    covariates = stringr::str_trim(stringr::str_split(stringr::str_split_i(as.character(formula), "~", 2), "\\+", simplify = T))
+    covariates = stringr::str_trim(stringr::str_split(stringr::str_split_i(as.character(formula), "~", 2), "\\+", simplify = TRUE))
     covariates = setdiff(covariates, svyVar)
     if("." %in% covariates){
       covariates = setdiff(names(samples), svyVar)
@@ -840,7 +838,7 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
     population = dplyr::mutate_at(population, all.vars(as.formula(auxiliary)), as.factor)
     auxiliary = stringr::str_replace_all(auxiliary, "\\*", ":")
     auxiliary = stringr::str_split_i(as.character(auxiliary), "~", 2)
-    auxiliary = stringr::str_split(auxiliary, "\\+", simplify = T)
+    auxiliary = stringr::str_split(auxiliary, "\\+", simplify = TRUE)
 
     if(length(covariates) == 0){
       outcome_formula = paste0(paste0(svyVar, "~"), paste0("(1|", auxiliary, ")", collapse = "+"))
@@ -848,7 +846,7 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
       outcome_formula = paste(paste0(svyVar, "~", paste0(covariates, collapse = "+")), paste0("(1|", auxiliary, ")", collapse = "+"), sep= "+")
     }
     cat("The formula for the MRP model is ", outcome_formula, "\n")
-    MRP_est = svyBayesmod(samples, population, outcome_formula, "stan_glmer", subset, family, levels, weights, nskip, npost, nchain, printmod = TRUE, doFigure = show_plot, useTrueSample = F, stan_verbose = stan_verbose, HPD_CI = HPD_interval)
+    MRP_est = svyBayesmod(samples, population, outcome_formula, "stan_glmer", subset, family, levels, weights, nskip, npost, nchain, printmod = TRUE, doFigure = show_plot, useTrueSample = FALSE, stan_verbose = stan_verbose, HPD_CI = HPD_interval)
     #return(MRP_est)
     MRP_est =  lapply(MRP_est, function(est){
       if(is.null(weights))
@@ -867,7 +865,7 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
     if(is.null(nskip)) nskip = 1000
     if(is.null(npost)) npost = 1000
     if(is.null(nchain)) nchain = 4
-    #covariates = str_trim(str_split(str_split_i(as.character(formula), "~", 2), "\\+", simplify = T))
+    #covariates = str_trim(str_split(str_split_i(as.character(formula), "~", 2), "\\+", simplify = TRUE))
     #if("." %in% covariates){
     #  covariates = setdiff(names(samples), svyVar)
     #}
@@ -877,11 +875,11 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
     population = dplyr::mutate_at(population, intersect(all.vars(as.formula(auxiliary)), colnames(population)), as.numeric)
 
     auxiliary = stringr::str_replace_all(auxiliary, "\\*", ":")
-    auxiliary_fixed = setdiff(stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T), all.vars(as.formula(auxiliary)))[stringr::str_detect(stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T), "s\\(.*\\)")]
+    auxiliary_fixed = setdiff(stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = TRUE), all.vars(as.formula(auxiliary)))[stringr::str_detect(stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = TRUE), "s\\(.*\\)")]
 
 
     outcome_formula = paste(formula, paste(auxiliary_fixed, collapse = "+"), sep = "+")
-    auxiliary_random = union(intersect(stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T), all.vars(as.formula(auxiliary))), stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T)[is.na(stringr::str_match(stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T), "s\\(.*\\)"))])
+    auxiliary_random = union(intersect(stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = TRUE), all.vars(as.formula(auxiliary))), stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = TRUE)[is.na(stringr::str_match(stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = TRUE), "s\\(.*\\)"))])
 
     if(length(auxiliary_random) > 0){
       samples = dplyr::mutate_at(samples, all.vars(as.formula(paste0("~", auxiliary_random))), as.factor)
@@ -897,7 +895,7 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
 
     #outcome_formula = paste(formula, paste0(str_remove_all(auxiliary, "~"), collapse = "+"), paste0("(1|", auxiliary_random, ")", collapse = "+"),  sep = "+")
 
-    GAMP_est = svyBayesmod(samples, population, outcome_formula, "stan_gamm4", subset, family, levels, weights, nskip, npost, nchain, printmod = T, doFigure = F, useTrueSample = T, stan_verbose = stan_verbose, HPD_CI = HPD_interval, seed = seed)
+    GAMP_est = svyBayesmod(samples, population, outcome_formula, "stan_gamm4", subset, family, levels, weights, nskip, npost, nchain, printmod = TRUE, doFigure = FALSE, useTrueSample = TRUE, stan_verbose = stan_verbose, HPD_CI = HPD_interval, seed = seed)
     #print(GAMP_est)
 
     GAMP_est =  lapply(GAMP_est, function(est){
@@ -920,21 +918,21 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
     population = dplyr::mutate_at(population, intersect(all.vars(as.formula(auxiliary)), colnames(population)), as.numeric)
 
 
-    auxiliary_fixed = setdiff(stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T), all.vars(as.formula(auxiliary)))
+    auxiliary_fixed = setdiff(stringr::str_split(stringr::str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = TRUE), all.vars(as.formula(auxiliary)))
 
 
     outcome_formula = paste(formula, paste(auxiliary_fixed, collapse = "+"), collapse = "+")
-    auxiliary_random = intersect(str_split(str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = T), all.vars(as.formula(auxiliary)))
+    auxiliary_random = intersect(str_split(str_split_i(as.character(auxiliary), "~", 2), "\\+", simplify = TRUE), all.vars(as.formula(auxiliary)))
     samples = dplyr::mutate_at(samples, auxiliary_random, as.factor)
     population = dplyr::mutate_at(population, auxiliary_random, as.factor)
     if(length(auxiliary_random) != 0){
       outcome_formula = c(outcome_formula, paste0("~", paste0("(1|", auxiliary_random, ")", collapse = "+")))
       cat("The formula for the linear model is ", paste0(outcome_formula[1], str_replace(outcome_formula[2], "~", "+"), collapse = ""), "\n")
-      Linear_est = svyBayesmod(samples, population, outcome_formula, "stan_glmer", family, levels, weights, nskip, npost, nchain, printmod = T, doFigure = F, useTrueSample = T, stan_verbose = stan_verbose, HPD_CI = HPD_interval)
+      Linear_est = svyBayesmod(samples, population, outcome_formula, "stan_glmer", family, levels, weights, nskip, npost, nchain, printmod = TRUE, doFigure = FALSE, useTrueSample = TRUE, stan_verbose = stan_verbose, HPD_CI = HPD_interval)
     }else{
       outcome_formula = c(outcome_formula, NULL)
       cat("The formula for the linear model is ", outcome_formula, "\n")
-      Linear_est = svyBayesmod(samples, population, outcome_formula, "stan_glm", subset, family, levels, weights, nskip, npost, nchain, printmod = T, doFigure = F, useTrueSample = T, stan_verbose = stan_verbose, HPD_CI = HPD_interval)
+      Linear_est = svyBayesmod(samples, population, outcome_formula, "stan_glm", subset, family, levels, weights, nskip, npost, nchain, printmod = TRUE, doFigure = FALSE, useTrueSample = TRUE, stan_verbose = stan_verbose, HPD_CI = HPD_interval)
     }
 
 
@@ -956,7 +954,7 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
     if(is.null(nskip)) nskip = 1000
     if(is.null(npost)) npost = 1000
     if(is.null(nchain)) nchain = 1
-    covariates = stringr::str_trim(stringr::str_split(stringr::str_split_i(as.character(formula), "~", 2), "\\+", simplify = T))
+    covariates = stringr::str_trim(stringr::str_split(stringr::str_split_i(as.character(formula), "~", 2), "\\+", simplify = TRUE))
     covariates = setdiff(covariates, svyVar)
     if("." %in% covariates){
       covariates = setdiff(names(samples), svyVar)
@@ -972,13 +970,13 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
       #X_train = samples[, covariates]
       #print(colnames(X_train))
       y_train = dplyr::pull(samples, svyVar)
-      model <- BART::pbart(X_train, y_train, ndpost = npost, nskip = nskip, rm.const=F)
+      model <- BART::pbart(X_train, y_train, ndpost = npost, nskip = nskip, rm.const=FALSE)
     }
     if(family$family == "gaussian"){
       X_train = stats::model.matrix(as.formula(paste0("~", stringr::str_split_i(as.character(formula), "~", 2))), samples[, covariates])
       #X_train = samples[, covariates]
       y_train = dplyr::pull(samples, svyVar)
-      model <- BART::wbart(X_train, y_train, ndpost = npost, nskip = nskip, rm.const=F)
+      model <- BART::wbart(X_train, y_train, ndpost = npost, nskip = nskip, rm.const=FALSE)
     }
     subset = c("T", subset)
     infr = sapply(subset, function(s){
@@ -1005,20 +1003,20 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
         #confint(post_est, level = 0.95)
         if(HPD_interval){
           class(post_est) <- 'mcmc'
-          ci = coda::HPDinterval(post_est, prob = level, names = T)
+          ci = coda::HPDinterval(post_est, prob = level, names = TRUE)
           names(ci) = paste(((1 - level)/2 * c(1, -1) + c(0, 1)) * 100, "%")
         }else{
           ci = ((1 - level)/2 * c(1, -1) + c(0, 1))
-          ci = quantile(post_est, probs = ci, names = T)
+          ci = quantile(post_est, probs = ci, names = TRUE)
           names(ci) = stringr::str_replace(names(ci), "%", " %")
         }
         ci
-      }, simplify = F)
+      }, simplify = FALSE)
 
       tCI = do.call("c", tCI)
       infr <- rbind(c(post_mean_est = mean(post_est), post_median_est = median(post_est), se = sd(post_est), tCI, sample_size = nrow(svysmpl1), population_size = nrow(svypopu1)))
       return(infr)
-    }, simplify = F)
+    }, simplify = FALSE)
     names(infr)[1] = "All"
     BART_est =  lapply(infr, function(est){
       rownames(est) = "BART"
