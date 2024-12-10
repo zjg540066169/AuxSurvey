@@ -21,7 +21,11 @@ For more details on these estimators and their applications, please consult the 
 ## Installation
 This package is based on `rstan` and `rstanarm`, please make sure these two packages can be installed.
 
-Right now, the package has not been uploaded to Rcran yet, so please install this package from Github:
+This package from R CRAN:
+```
+install.packages("AuxSurvey")
+```
+or Github:
 ```
 require("devtools")
 install_github("https://github.com/zjg540066169/AuxSurvey")
