@@ -967,13 +967,13 @@ auxsurvey <- function(formula, auxiliary = NULL, samples, population = NULL, sub
     if(family$family == "binomial"){
       X_train = stats::model.matrix(as.formula(paste0("~", stringr::str_split_i(as.character(formula), "~", 2))), samples[, covariates])
       y_train = dplyr::pull(samples, svyVar)
-      model <- BART::pbart(X_train, y_train, ndpost = npost, nskip = nskip, rm.const=FALSE)
+      model <- BART3::pbart(X_train, y_train, ndpost = npost, nskip = nskip, rm.const=FALSE)
     }
     if(family$family == "gaussian"){
       X_train = stats::model.matrix(as.formula(paste0("~", stringr::str_split_i(as.character(formula), "~", 2))), samples[, covariates])
       #X_train = samples[, covariates]
       y_train = dplyr::pull(samples, svyVar)
-      model <- BART::wbart(X_train, y_train, ndpost = npost, nskip = nskip, rm.const=FALSE)
+      model <- BART3::wbart(X_train, y_train, ndpost = npost, nskip = nskip, rm.const=FALSE)
     }
     subset = c("T", subset)
     infr = sapply(subset, function(s){
