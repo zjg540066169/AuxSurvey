@@ -16,7 +16,7 @@ The following survey estimators with discretized auxiliary variables are provide
 * Bayesian linear regression
 * BART (Bayesian additive regression trees)
 
-For more details on these estimators and their applications, please consult the following paper: Williams, S.Z., Zou, J., Liu, Y., Si, Y., Galea, S. and Chen, Q. (2024), Improving Survey Inference Using Administrative Records Without Releasing Individual-Level Continuous Data. Statistics in Medicine. https://doi.org/10.1002/sim.10270
+For more details on these estimators and their applications, please consult the following paper: Williams, S.Z., Zou, J., Liu, Y., Si, Y., Galea, S. and Chen, Q. (2024), Improving Survey Inference Using Administrative Records Without Releasing Individual-Level Continuous Data. Statistics in Medicine, 43: 5803-5813. https://doi.org/10.1002/sim.10270.
 
 ## Installation
 This package is based on `rstan` and `rstanarm`, please make sure these two packages can be installed.
