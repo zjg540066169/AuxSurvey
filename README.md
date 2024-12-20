@@ -1,7 +1,7 @@
 # AuxSurvey
   <!-- badges: start -->
   [![R-CMD-check](https://github.com/zjg540066169/AuxSurvey/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/zjg540066169/AuxSurvey/actions/workflows/R-CMD-check.yaml)
-  [![version](https://img.shields.io/badge/version-0.9-green.svg)](https://github.com/zjg540066169/AuxSurvey)
+  [![version](https://img.shields.io/badge/version-1.0-green.svg)](https://github.com/zjg540066169/AuxSurvey)
   ![Language](https://img.shields.io/github/languages/top/zjg540066169/AuxSurvey.svg)
   <!-- badges: end -->
 
