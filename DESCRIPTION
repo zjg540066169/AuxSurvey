@@ -32,7 +32,7 @@ Imports:
     survey,
     gtools,
     coda,
-    BART3,
+    BART,
     dplyr,
     stringr,
     gridExtra,
